@@ -40,7 +40,7 @@ const CertificateAdd = () => {
   const [formData, setFormData] = useState(initialForm);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
-  const baseUrl = import.meta.env.VITE_MAHAD_baseUrl;
+  const baseUrl = import.meta.env.VITE_almasnad_baseUrl;
 
   const handleChange = (e) =>
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));

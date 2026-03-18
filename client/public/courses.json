@@ -3,7 +3,7 @@
     "_id": "course_001",
     "title": "হিফজ প্রোগ্রাম | কুরআন মুখস্থ",
     "description": "আমাদের হিফজ প্রোগ্রাম শিক্ষার্থীদের জন্য এমনভাবে তৈরি করা হয়েছে, যাতে তারা শুদ্ধ উচ্চারণে কুরআন মুখস্থ করতে পারে।",
-    "banner": "/courses/hifz.jpg",
+    "banner": "/popularCourses/hifz.jpg",
     "type": "অনলাইন",
     "price": 1000,
     "discountPrice": 3000,

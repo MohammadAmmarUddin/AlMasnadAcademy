@@ -11,7 +11,7 @@ const pageVisibilitySchema = new mongoose.Schema(
       StudentGallery: { type: Boolean, default: true },
       PagriGallery: { type: Boolean, default: true },
       VortiCholche: { type: Boolean, default: true },
-      StudentReview: { type: Boolean, default: false },
+      StudentReview: { type: Boolean, default: true },
     },
   },
   { timestamps: true },

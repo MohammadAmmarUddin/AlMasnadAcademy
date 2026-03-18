@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import StudentGallery from "../Components/StudentGallery";
 // import PagriGallery from "../Components/PagriGallery";
 import PopularCourses from "../Components/PopularCourses.jsx";
+import PagriGallery from "../Components/PagriGallery.jsx";
 
 import UpdateBanner from "../Components/UpdateBanner.jsx";
 import VideoSection from "../Components/VideoSection.jsx";
@@ -20,14 +21,13 @@ const BRAND_DARK = "#090f6e";
 const BRAND_LIGHT = "#eef0fd";
 
 const stats = [
-  { icon: <FaUserGraduate />, value: "30+", label: "Students" },
-  { icon: <FaChalkboardTeacher />, value: "3+", label: "Teachers" },
+  { icon: <FaUserGraduate />, value: "300+", label: "Students" },
   { icon: <FaGlobe />, value: "5+", label: "Countries" },
 ];
 
 const Home = () => {
   const { user } = useAuthContext();
-  const baseUrl = import.meta.env.VITE_MAHAD_baseUrl;
+  const baseUrl = import.meta.env.VITE_almasnad_baseUrl;
   const [visibility, setVisibility] = useState(null);
 
   useEffect(() => {
@@ -86,12 +86,12 @@ const Home = () => {
             />
 
             {/* Mobile floating badge */}
-            {/* Mobile floating badge */}
+
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.5 }}
-              className="absolute -bottom-3 left-1/2 -translate-x-1/2 lg:hidden px-4 py-1.5 rounded-full text-xs font-bold text-white shadow-lg whitespace-nowrap"
+              className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 lg:hidden px-4 py-1.5 rounded-full text-xs font-bold text-white shadow-lg whitespace-nowrap"
               style={{ backgroundColor: BRAND }}
             >
               🕌 Online & Offline
@@ -113,7 +113,7 @@ const Home = () => {
               className="inline-flex items-center justify-center lg:justify-start gap-2 px-4 py-1.5 rounded-full text-sm font-semibold w-fit mx-auto lg:mx-0 shadow-sm"
               style={{ backgroundColor: BRAND_LIGHT, color: BRAND }}
             >
-              🏅 Trusted by 30+ Students Worldwide
+              🏅 Trusted by 300+ Students Worldwide
             </motion.div>
 
             {/* Title */}
@@ -237,7 +237,7 @@ const Home = () => {
       {show("VideoSection") && <VideoSection />}
       {show("StudentGallery") && <StudentGallery />}
       {show("StudentReview") && <StudentReview />}
-      {/* {show("PagriGallery") && <PagriGallery />} */}
+      {show("PagriGallery") && <PagriGallery />}
     </div>
   );
 };
