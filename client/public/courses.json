@@ -1,0 +1,68 @@
+[
+  {
+    "_id": "course_001",
+    "title": "হিফজ প্রোগ্রাম | কুরআন মুখস্থ",
+    "description": "আমাদের হিফজ প্রোগ্রাম শিক্ষার্থীদের জন্য এমনভাবে তৈরি করা হয়েছে, যাতে তারা শুদ্ধ উচ্চারণে কুরআন মুখস্থ করতে পারে।",
+    "banner": "/courses/hifz.jpg",
+    "type": "অনলাইন",
+    "price": 1000,
+    "discountPrice": 3000,
+    "rating": 4.5,
+    "totalRatings": 12
+  },
+  {
+    "_id": "course_002",
+    "title": "মাক্বামাত প্রোগ্রাম | এরাবিক সুর বিদ্যা ",
+    "description": "আরবি মাকামাত শিখুন এবং সুন্দর সুরে কুরআন তিলাওয়াত করার দক্ষতা অর্জন করুন অভিজ্ঞ উস্তাদের কাছ থেকে।",
+    "banner": "/popularCourses/maqamat.jpg",
+    "type": "অনলাইন",
+    "price": 1500,
+    "discountPrice": 4000,
+    "rating": 5.0,
+    "totalRatings": 8
+  },
+  {
+    "_id": "course_003",
+    "title": "তাজউইদ বেসিক | প্রাথমিক কোর্স",
+    "description": "কুরআন তিলাওয়াতের মৌলিক নিয়মকানুন শিখুন। একদম শুরু থেকে সঠিক উচ্চারণ ও তাজউইদ আয়ত্ত করুন।",
+    "banner": "/popularCourses/tajweed.jpg",
+    "type": "অনলাইন",
+    "price": 800,
+    "discountPrice": 2000,
+    "rating": 4.2,
+    "totalRatings": 20
+  },
+  {
+    "_id": "course_004",
+    "title": "কিডস প্রোগ্রাম | শিশুদের কুরআন",
+    "description": "৫ থেকে ১২ বছর বয়সী শিশুদের জন্য বিশেষভাবে তৈরি মজাদার ও কার্যকর কুরআন শিক্ষার প্রোগ্রাম।",
+    "banner": "/popularCourses/banner.png",
+    "type": "অনলাইন",
+    "price": 600,
+    "discountPrice": 1500,
+    "rating": 4.9,
+    "totalRatings": 25
+  },
+  {
+    "_id": "course_005",
+    "title": "নাজেরা প্রোগ্রাম | দেখে পড়া",
+    "description": "কুরআন দেখে শুদ্ধভাবে পড়ার দক্ষতা অর্জন করুন। শিক্ষানবিশ থেকে উচ্চতর সব স্তরের জন্য উপযুক্ত।",
+    "banner": "/courses/nazera.jpg",
+    "type": "অনলাইন",
+    "price": 700,
+    "discountPrice": 1800,
+    "rating": 4.3,
+    "totalRatings": 18
+  },
+  {
+    "_id": "course_006",
+    "title": "ইমামতি প্রশিক্ষণ | নামাজে ইমামতি",
+    "description": "মসজিদে ইমামতির জন্য প্রয়োজনীয় দক্ষতা অর্জন করুন — নামাজের সুরা, তারাবিহ ও বিশেষ নামাজ শিক্ষা।",
+    "banner": "/courses/imamat.jpg",
+    "type": "অনলাইন",
+    "price": 2500,
+    "discountPrice": 6000,
+    "rating": 4.7,
+    "totalRatings": 10
+  }
+]
