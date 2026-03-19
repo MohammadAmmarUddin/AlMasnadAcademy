@@ -88,7 +88,7 @@ const MyClasses = () => {
             className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border"
             style={{ borderColor: BRAND_LIGHT }}
           >
-            <Link to={`/singleCourse/${course?._id}`}>
+            <Link to={`/singleCourse/${course._id}`} state={{ course }}>
               {/* Image */}
               <div className="relative overflow-hidden h-44">
                 <img

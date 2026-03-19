@@ -1,11 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useParams } from "react-router-dom";
-import Sidebar from "./Sidebar";
 import { IoMdDownload } from "react-icons/io";
 import {
   FaChevronLeft,
   FaChevronRight,
-  FaLock,
   FaRegStar,
   FaStar,
   FaStarHalfAlt,
@@ -14,18 +11,22 @@ import {
   FaCheckCircle,
   FaCopy,
   FaBitcoin,
+  FaWifi,
+  FaMicrophone,
+  FaHeadphones,
 } from "react-icons/fa";
-import { PiExam } from "react-icons/pi";
 import Navbar from "./Navbar";
-import { MdOutlineSlowMotionVideo } from "react-icons/md";
-import { GoNote } from "react-icons/go";
-import { TbCurrencyTaka, TbLivePhoto } from "react-icons/tb";
 import Footer from "./Footer";
 import { FaRegCirclePlay } from "react-icons/fa6";
 import useAuthContext from "../hooks/useAuthContext";
 import Swal from "sweetalert2";
 import parse from "html-react-parser";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link, useLocation, useParams } from "react-router-dom";
+import { MdOutlineSlowMotionVideo, MdDevices } from "react-icons/md";
+import { GoNote } from "react-icons/go";
+import { TbLivePhoto } from "react-icons/tb";
+import { PiExam } from "react-icons/pi";
 
 const BRAND = "#0b148f";
 const BRAND_DARK = "#090f6e";
@@ -36,7 +37,7 @@ const WHATSAPP_IN = "919365262648";
 const BKASH_NUMBER = "01883128299";
 const NAGAD_NUMBER = "01883128299";
 
-// ─── CoursePayment ───────────────────────────────────────
+// ─── CoursePayment ────────────────────────────────────────
 const CoursePayment = ({ course }) => {
   const [step, setStep] = useState(1);
   const [method, setMethod] = useState(null);
@@ -60,8 +61,7 @@ const CoursePayment = ({ course }) => {
 💳 *মাধ্যম:* ${method === "bkash" ? "bKash" : "Nagad"}
 📱 *নম্বর:* ${phone}
 🔖 *ট্রানজেকশন:* ${transactionId}
-✅ অনুগ্রহ করে আমার ভর্তি নিশ্চিত করুন।
-  `.trim(),
+✅ অনুগ্রহ করে আমার ভর্তি নিশ্চিত করুন।`.trim(),
     );
 
   const handleSubmit = (e) => {
@@ -441,111 +441,55 @@ const CoursePayment = ({ course }) => {
 // ─── Main SingleCourse ────────────────────────────────────
 const SingleCourse = () => {
   const { id } = useParams();
-  const courseId = id;
+  const { state } = useLocation();
   const { user } = useAuthContext();
-  const [courseData, setCourseData] = useState(null);
+
+  const [courseData, setCourseData] = useState(state?.course || null);
   const [reletedCourses, setreletedCourses] = useState([]);
-  const [allUsers, setAllUsers] = useState([]);
-  const [selectedVideo, setSelectedVideo] = useState(null);
-  const [isAdminOrStudent, setIsAdminOrStudent] = useState(false);
   const [rating, setRating] = useState(null);
   const [comments, setComments] = useState("");
-  const [unlockedVideos, setUnlockedVideos] = useState(1);
-  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [courseComplete, setCourseComplete] = useState(false);
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [quizSubmitted, setQuizSubmitted] = useState(false);
-  const [score, setScore] = useState(0);
-  const [quizzes, setQuizzes] = useState([]);
-  const [quizComplete, setQuizComplete] = useState(false);
-  const userId = user?.user?._id;
 
-  const studentsOpinionCarouselRef = useRef(null);
   const reletedCoursesCarouselRef = useRef(null);
-
+  const userId = user?.user?._id;
   const baseUrl = import.meta.env.VITE_MAHAD_baseUrl; // ✅ fixed
 
-  const discountAmount =
-    courseData?.price && courseData?.discount
-      ? (parseInt(courseData.price) * parseInt(courseData.discount)) / 100
-      : 0;
-  const finalPrice = courseData?.price
-    ? parseInt(courseData.price) - discountAmount
-    : null;
-
+  // Fetch course if not passed via state
   useEffect(() => {
-    if (courseData && courseData.students && userId) {
-      const currentStudent = courseData.students.find(
-        (s) => s.studentsId === userId,
-      );
-      if (currentStudent) {
-        setIsAdminOrStudent(true);
-        setUnlockedVideos(currentStudent.unlockedVideo || 1);
-        setCourseComplete(
-          currentStudent.unlockedVideo === courseData.videos.length,
-        );
-      } else {
-        setIsAdminOrStudent(false);
-        setUnlockedVideos(1);
-      }
-    }
-  }, [courseData, userId]);
+    if (state?.course) return;
+    fetch(`${baseUrl}/api/course/getSingleCourse/${id}`)
+      .then((r) => r.json())
+      .then((data) => setCourseData(data))
+      .catch(() => {});
+  }, [id]);
 
-  const courseCompleteAction = async () => {
-    try {
-      const res = await fetch(
-        `${baseUrl}/api/course/completeCourse/${userId}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ _id: courseData._id }),
-        },
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed");
-      Swal.fire({
-        title: "Congratulations!",
-        text: "You have completed the course!",
-        icon: "success",
-        confirmButtonColor: BRAND,
-      });
-      setCourseComplete(true);
-      fetchSingleCourse();
-    } catch (error) {
-      Swal.fire({
-        title: "Error",
-        text: error.message,
-        icon: "error",
-        confirmButtonColor: BRAND,
-      });
-    }
-  };
+  // Fetch related courses after courseData loads
+  useEffect(() => {
+    if (!courseData?.keywords?.length) return;
+    fetch(`${baseUrl}/api/course/getAllCourses`)
+      .then((r) => r.json())
+      .then((data) => {
+        const kw = courseData.keywords.map((k) => k?.toLowerCase().trim());
+        setreletedCourses(
+          data?.filter((c) =>
+            c?.keywords?.some((k) => kw.includes(k?.toLowerCase().trim())),
+          ),
+        );
+      })
+      .catch(() => {});
+  }, [courseData]);
 
   const downloadFiteAtURL = (url) => {
-    const aTag = document.createElement("a");
-    aTag.href = url;
-    aTag.setAttribute("download", url?.split("/").pop().split("?")[0]);
-    document.body.appendChild(aTag);
-    aTag.click();
-    aTag.remove();
-  };
-
-  const unlockNextVideo = async () => {
-    if (unlockedVideos < courseData.videos.length) {
-      const res = await fetch(`${baseUrl}/api/course/unlockVideo/${userId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ _id: courseData._id }),
-      });
-      if (res.ok) {
-        const next = unlockedVideos + 1;
-        setUnlockedVideos(next);
-        if (next === courseData.videos.length) setCourseComplete(true);
-      }
-    }
+    if (!url) return;
+    const a = document.createElement("a");
+    a.href = url;
+    a.setAttribute("download", url.split("/").pop().split("?")[0]);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   const handleSubmitRating = async () => {
+    if (!rating) return;
     try {
       const res = await fetch(
         `${baseUrl}/api/course/giveRating/${courseData._id}`,
@@ -559,8 +503,8 @@ const SingleCourse = () => {
           }),
         },
       );
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         Swal.fire({
           icon: "error",
           title: "Oops...",
@@ -574,66 +518,11 @@ const SingleCourse = () => {
           text: "Your review is submitted!",
           confirmButtonColor: BRAND,
         });
-        fetchSingleCourse();
+        setRating(null);
+        setComments("");
       }
     } catch {}
   };
-
-  const fetchSingleCourse = async () => {
-    try {
-      const res = await fetch(`${baseUrl}/api/course/getSingleCourse/${id}`);
-      if (!res.ok) throw new Error("Failed");
-      const data = await res.json();
-      setCourseData(data);
-      setSelectedVideo(data.videos[0]);
-      setQuizzes(data.quiz?.map((q) => ({ ...q, selectedAnswer: null })) || []);
-    } catch {}
-  };
-
-  const fetchreletedCourses = () => {
-    fetch(`${baseUrl}/api/course/getAllCourses`)
-      .then((r) => r.json())
-      .then((data) => {
-        const keywords = courseData?.keywords?.map((k) =>
-          k?.toLowerCase().trim(),
-        );
-        setreletedCourses(
-          data?.filter((c) =>
-            c?.keywords?.some((k) =>
-              keywords?.includes(k?.toLowerCase().trim()),
-            ),
-          ),
-        );
-      })
-      .catch(() => {});
-  };
-
-  useEffect(() => {
-    fetchSingleCourse();
-    fetch(`${baseUrl}/api/user/allUsers`)
-      .then((r) => r.json())
-      .then(setAllUsers)
-      .catch(() => {});
-  }, [id]);
-  useEffect(() => {
-    if (courseData?.videos && !selectedVideo)
-      setSelectedVideo(courseData.videos[0]);
-    if (courseData?.keywords) fetchreletedCourses();
-  }, [courseData]);
-
-  const handleVideoSelect = (video, index) => {
-    if (!showQuiz) {
-      setSelectedVideo(video);
-      setCurrentVideoIndex(index);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
-  const scrollCarousel = (ref, dir) =>
-    ref.current?.scrollBy({
-      left: dir === "left" ? -200 : 200,
-      behavior: "smooth",
-    });
 
   const calculateAverageRating = () => {
     if (!courseData?.studentsOpinion?.length) return 0;
@@ -659,303 +548,20 @@ const SingleCourse = () => {
     ];
   };
 
-  const handleQuizChange = (qi, val) => {
-    const updated = [...quizzes];
-    updated[qi].selectedAnswer = val;
-    setQuizzes(updated);
-  };
-
-  const handleQuizSubmit = () => {
-    let s = 0;
-    quizzes.forEach((q) => {
-      if (q.selectedAnswer === q.ans.toString()) s++;
+  const scrollCarousel = (ref, dir) =>
+    ref.current?.scrollBy({
+      left: dir === "left" ? -200 : 200,
+      behavior: "smooth",
     });
-    setScore(s);
-    setQuizSubmitted(true);
-    setUnlockedVideos(courseData.videos.length);
-    const saved = [...quizzes];
-    quizCompleteAction(s).then(() => setQuizzes(saved));
-  };
 
-  const quizCompleteAction = async (newScore) => {
-    const pct = (newScore * 100) / quizzes.length;
-    if (pct < 40) {
-      Swal.fire({
-        title: "Error",
-        text: `You got ${pct}%. Need at least 40%.`,
-        icon: "error",
-        confirmButtonColor: BRAND,
-      });
-      return;
-    }
-    try {
-      const res = await fetch(`${baseUrl}/api/course/completeQuiz/${userId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          _id: courseData._id,
-          quizMarks: newScore,
-          quizMarksPercentage: pct,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-      setQuizComplete(true);
-      Swal.fire({
-        title: "Congratulations!",
-        text: `You got ${pct}%!`,
-        icon: "success",
-        confirmButtonColor: BRAND,
-      });
-    } catch (err) {
-      Swal.fire({
-        title: "Error",
-        text: err.message,
-        icon: "error",
-        confirmButtonColor: BRAND,
-      });
-    }
-  };
-
-  // ── Video list sidebar (reused in desktop + mobile)
-  const VideoList = () => (
-    <div
-      className="border rounded-xl h-[600px] relative overflow-hidden"
-      style={{ borderColor: BRAND_LIGHT }}
-    >
-      <div className="overflow-y-auto h-[calc(100%-60px)]">
-        {courseData?.videos?.map((video, index) => (
-          <p
-            key={video?._id}
-            onClick={() =>
-              !showQuiz &&
-              index < unlockedVideos &&
-              handleVideoSelect(video, index)
-            }
-            className={`m-3 p-2 rounded-xl border text-sm flex items-center gap-2 transition-all duration-200 ${
-              showQuiz
-                ? "text-gray-400 cursor-not-allowed"
-                : selectedVideo?._id === video._id
-                  ? "text-white font-semibold cursor-pointer"
-                  : index < unlockedVideos
-                    ? "text-gray-700 cursor-pointer hover:bg-gray-50"
-                    : "text-gray-400 cursor-not-allowed"
-            }`}
-            style={
-              selectedVideo?._id === video._id
-                ? { backgroundColor: BRAND, borderColor: BRAND }
-                : { borderColor: "#f0f0f8" }
-            }
-          >
-            {index < unlockedVideos ? (
-              <span className="text-xs opacity-60">{index + 1}.</span>
-            ) : (
-              <FaLock size={10} />
-            )}
-            <span className="truncate">{video?.videoTitle}</span>
-          </p>
-        ))}
-        {courseData?.videos?.length > 0 && (
-          <div
-            className="flex justify-between items-center m-3 p-2 rounded-xl border"
-            style={{ borderColor: BRAND_LIGHT }}
-          >
-            <p
-              className={`text-sm font-medium ${courseComplete ? "text-gray-700" : "text-gray-400"}`}
-            >
-              Quiz
-            </p>
-            <button
-              onClick={
-                courseComplete
-                  ? () => {
-                      setShowQuiz(true);
-                      setSelectedVideo(null);
-                    }
-                  : undefined
-              }
-              disabled={!courseComplete}
-              className="text-xs px-3 py-1 rounded-lg font-bold text-white disabled:opacity-40"
-              style={{ backgroundColor: courseComplete ? BRAND : "#9ca3af" }}
-            >
-              Open
-            </button>
-          </div>
-        )}
-      </div>
-      {/* Prev/Next */}
-      <div
-        className="absolute bottom-0 left-0 right-0 p-3 flex justify-between border-t"
-        style={{ borderColor: BRAND_LIGHT }}
-      >
-        <button
-          onClick={() =>
-            currentVideoIndex > 0 &&
-            handleVideoSelect(
-              courseData.videos[currentVideoIndex - 1],
-              currentVideoIndex - 1,
-            )
-          }
-          disabled={currentVideoIndex === 0}
-          className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white disabled:opacity-40"
-          style={{ backgroundColor: BRAND }}
-        >
-          ← Prev
-        </button>
-        <button
-          onClick={() => {
-            if (currentVideoIndex < courseData.videos.length - 1) {
-              if (currentVideoIndex + 1 < unlockedVideos) {
-                handleVideoSelect(
-                  courseData.videos[currentVideoIndex + 1],
-                  currentVideoIndex + 1,
-                );
-              } else {
-                unlockNextVideo().then(() =>
-                  handleVideoSelect(
-                    courseData.videos[currentVideoIndex + 1],
-                    currentVideoIndex + 1,
-                  ),
-                );
-              }
-            }
-          }}
-          disabled={currentVideoIndex === courseData?.videos?.length - 1}
-          className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white disabled:opacity-40"
-          style={{ backgroundColor: BRAND }}
-        >
-          Next →
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderQuizContent = () => (
-    <div
-      className="rounded-2xl border p-6 w-full"
-      style={{ borderColor: BRAND_LIGHT }}
-    >
-      <h1
-        className="text-2xl font-extrabold mb-6 text-center"
-        style={{ color: BRAND }}
-      >
-        📝 Quiz
-      </h1>
-      {quizzes.map((quiz, qi) => (
-        <div
-          key={quiz.id}
-          className="mb-6 bg-white border rounded-xl p-5"
-          style={{ borderColor: BRAND_LIGHT }}
-        >
-          <p className="font-bold text-sm mb-3" style={{ color: BRAND }}>
-            {qi + 1}. {quiz.ques}
-          </p>
-          <div className="space-y-2">
-            {quiz.options.map((opt, oi) => (
-              <div key={oi} className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  id={`q${qi}-o${oi}`}
-                  name={`q${qi}`}
-                  value={oi.toString()}
-                  checked={quiz.selectedAnswer === oi.toString()}
-                  onChange={(e) => handleQuizChange(qi, e.target.value)}
-                  disabled={quizSubmitted}
-                  className="accent-[#0b148f]"
-                />
-                <label
-                  htmlFor={`q${qi}-o${oi}`}
-                  className={`text-sm ${
-                    quizSubmitted
-                      ? oi.toString() === quiz.ans.toString()
-                        ? "text-green-600 font-bold"
-                        : quiz.selectedAnswer === oi.toString()
-                          ? "text-red-500 font-bold"
-                          : "text-gray-600"
-                      : "text-gray-700"
-                  }`}
-                >
-                  {opt}
-                </label>
-                {quizSubmitted && oi.toString() === quiz.ans.toString() && (
-                  <span className="text-green-600 text-xs">✓</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-      {!quizSubmitted ? (
-        <button
-          onClick={handleQuizSubmit}
-          className="w-full py-3 rounded-xl font-bold text-white"
-          style={{ backgroundColor: BRAND }}
-        >
-          Submit Quiz
-        </button>
-      ) : (
-        <div className="text-center mt-4">
-          <p className="text-xl font-extrabold" style={{ color: BRAND }}>
-            Score: {score}/{quizzes.length}
-          </p>
-          <button
-            onClick={() => {
-              setShowQuiz(false);
-              setSelectedVideo(courseData.videos[0]);
-            }}
-            className="mt-4 w-full py-3 rounded-xl font-bold text-white"
-            style={{ backgroundColor: BRAND }}
-          >
-            ← Return to Videos
-          </button>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderStudentOpinions = () => {
-    if (!courseData?.studentsOpinion?.length)
-      return (
-        <div className="w-full h-40 flex items-center justify-center">
-          <p className="text-gray-400">No review yet</p>
-        </div>
-      );
-    return courseData.studentsOpinion.map((opinion, index) => {
-      const reviewer = allUsers.find((u) => u._id === opinion.reviewerId);
-      return (
-        <div
-          key={index}
-          className="border rounded-xl py-4 px-5 w-[340px] shrink-0"
-          style={{ borderColor: BRAND_LIGHT }}
-        >
-          <div className="flex gap-3 items-center mb-3">
-            <img
-              className="w-12 h-12 rounded-full object-cover border-2"
-              src={reviewer?.img}
-              alt=""
-              style={{ borderColor: BRAND_LIGHT }}
-            />
-            <div>
-              <p className="font-bold text-sm">
-                {reviewer?.firstname} {reviewer?.lastname}
-              </p>
-              <p className="text-xs text-gray-400">Student</p>
-            </div>
-          </div>
-          <div className="flex gap-0.5 mb-2">
-            {[...Array(5)].map((_, i) =>
-              i < opinion.rating ? (
-                <FaStar key={i} className="text-yellow-400" size={13} />
-              ) : (
-                <FaRegStar key={i} size={13} className="text-gray-300" />
-              ),
-            )}
-          </div>
-          <p className="text-sm text-gray-600">{opinion.comments}</p>
-        </div>
-      );
-    });
-  };
+  // Online class requirements — static + dynamic
+  const onlineRequirements = [
+    { icon: <FaWifi />, text: "স্থিতিশীল ইন্টারনেট সংযোগ (ন্যূনতম ৫ Mbps)" },
+    { icon: <MdDevices />, text: "স্মার্টফোন, ট্যাবলেট বা কম্পিউটার" },
+    { icon: <FaHeadphones />, text: "হেডফোন বা ইয়ারফোন ব্যবহার করুন" },
+    { icon: <FaMicrophone />, text: "মাইক্রোফোন (লাইভ ক্লাসের জন্য)" },
+    { icon: <FaRegCirclePlay />, text: "Zoom বা Google Meet ইনস্টল করুন" },
+  ];
 
   const commonSections = (
     <div className="space-y-10">
@@ -971,7 +577,7 @@ const SingleCourse = () => {
           {[
             {
               icon: <MdOutlineSlowMotionVideo />,
-              text: `${courseData?.videos?.length} Videos`,
+              text: `${courseData?.videos?.length || 0} Videos`,
             },
             { icon: <TbLivePhoto />, text: "Regular live classes" },
             { icon: <PiExam />, text: "Quiz after completing all lectures" },
@@ -987,336 +593,336 @@ const SingleCourse = () => {
         </div>
       </div>
 
-      {/* Instructors */}
-      <div>
-        <h3 className="text-xl font-extrabold mb-3" style={{ color: BRAND }}>
-          Course Instructors
-        </h3>
-        <div
-          className="border rounded-xl p-4 space-y-4"
-          style={{ borderColor: BRAND_LIGHT }}
-        >
-          {courseData?.instructorsId?.map((instructorId, i) => {
-            const inst = allUsers.find((u) => u._id === instructorId);
-            return (
-              <div key={i} className="flex gap-3 items-center">
-                <img
-                  className="w-14 h-14 rounded-full object-cover border-2"
-                  src={inst?.img}
-                  alt=""
-                  style={{ borderColor: BRAND_LIGHT }}
-                />
-                <div>
-                  <p className="font-bold text-sm">
-                    {inst?.firstname} {inst?.lastname}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    {inst?.profession?.[0]?.position || "Instructor"}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Course Details */}
-      <div>
-        <h3 className="text-xl font-extrabold mb-3" style={{ color: BRAND }}>
-          Course Details
-        </h3>
-        <article
-          className="border rounded-xl p-4 text-sm text-gray-700 leading-relaxed prose max-w-none"
-          style={{ borderColor: BRAND_LIGHT }}
-        >
-          {parse(courseData?.details || "No course details available.")}
-        </article>
-      </div>
-
-      {/* Contents */}
-      <div>
-        <h3 className="text-xl font-extrabold mb-3" style={{ color: BRAND }}>
-          Course Contents
-        </h3>
-        <div
-          className="border rounded-xl p-4 max-h-64 overflow-y-auto space-y-2"
-          style={{ borderColor: BRAND_LIGHT }}
-        >
-          {courseData?.videos?.map((video) => (
-            <div
-              key={video?._id}
-              className="flex items-center gap-2 text-sm text-gray-700"
-            >
-              <FaRegCirclePlay style={{ color: BRAND }} size={13} />{" "}
-              {video?.videoTitle}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Requirements */}
-      <div>
-        <h3 className="text-xl font-extrabold mb-3" style={{ color: BRAND }}>
-          Course Requirements
-        </h3>
-        <div
-          className="border rounded-xl p-4 text-sm text-gray-600"
-          style={{ borderColor: BRAND_LIGHT }}
-        >
-          {courseData?.requirements}
-        </div>
-      </div>
-
-      {/* Rating */}
-      {isAdminOrStudent && (
+      {courseData?.details && (
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xl font-extrabold" style={{ color: BRAND }}>
-              Your Opinion
-            </h3>
-            <div className="flex gap-1 cursor-pointer">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <div key={s} onClick={() => setRating(s)}>
-                  {rating >= s ? (
-                    <FaStar className="text-yellow-400" />
-                  ) : (
-                    <FaRegStar className="text-gray-300" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-          <textarea
-            value={comments}
-            onChange={(e) => setComments(e.target.value)}
-            className="w-full border-2 rounded-xl p-3 text-sm h-28 focus:outline-none resize-none"
+          <h3 className="text-xl font-extrabold mb-3" style={{ color: BRAND }}>
+            Course Details
+          </h3>
+          <article
+            className="border rounded-xl p-4 text-sm text-gray-700 leading-relaxed prose max-w-none"
             style={{ borderColor: BRAND_LIGHT }}
-            placeholder="Share your experience..."
-          />
-          <div className="text-right mt-2">
-            <button
-              onClick={handleSubmitRating}
-              className="px-6 py-2 rounded-xl text-sm font-bold text-white"
-              style={{ backgroundColor: BRAND }}
-            >
-              Submit
-            </button>
+          >
+            {parse(courseData.details)}
+          </article>
+        </div>
+      )}
+
+      {/* Course Contents */}
+      {courseData?.videos?.length > 0 && (
+        <div>
+          <h3 className="text-xl font-extrabold mb-3" style={{ color: BRAND }}>
+            Course Contents
+          </h3>
+          <div
+            className="border rounded-xl p-4 max-h-64 overflow-y-auto space-y-2"
+            style={{ borderColor: BRAND_LIGHT }}
+          >
+            {courseData.videos.map((video, i) => (
+              <div
+                key={video?._id || i}
+                className="flex items-center gap-2 text-sm text-gray-700"
+              >
+                <FaRegCirclePlay style={{ color: BRAND }} size={13} />
+                {video?.videoTitle}
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Student Opinions */}
+      {/* Online Class Requirements */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xl font-extrabold" style={{ color: BRAND }}>
-            Students Opinion
-          </h3>
-          <div className="flex gap-2">
-            {[
-              ["left", studentsOpinionCarouselRef],
-              ["right", studentsOpinionCarouselRef],
-            ].map(([dir, ref], i) => (
-              <button
-                key={i}
-                onClick={() => scrollCarousel(ref, dir)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
-                style={{ backgroundColor: BRAND }}
+        <h3 className="text-xl font-extrabold mb-3" style={{ color: BRAND }}>
+          অনলাইন ক্লাসের প্রয়োজনীয়তা
+        </h3>
+        <div
+          className="border rounded-xl p-4 space-y-3"
+          style={{ borderColor: BRAND_LIGHT }}
+        >
+          {onlineRequirements.map(({ icon, text }) => (
+            <div
+              key={text}
+              className="flex items-center gap-3 text-sm text-gray-700"
+            >
+              <span style={{ color: BRAND }}>{icon}</span> {text}
+            </div>
+          ))}
+          {/* Dynamic requirements from DB */}
+          {courseData?.requirements && (
+            <div
+              className="mt-3 pt-3 border-t text-sm text-gray-600"
+              style={{ borderColor: BRAND_LIGHT }}
+            >
+              {courseData.requirements}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Student Opinions */}
+      {courseData?.studentsOpinion?.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xl font-extrabold" style={{ color: BRAND }}>
+              Students Opinion
+            </h3>
+            <div className="flex gap-2">
+              {["left", "right"].map((dir, i) => (
+                <button
+                  key={dir}
+                  onClick={() =>
+                    scrollCarousel(
+                      { current: document.getElementById("opinionsRef") },
+                      dir,
+                    )
+                  }
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
+                  style={{ backgroundColor: BRAND }}
+                >
+                  {i === 0 ? (
+                    <FaChevronLeft size={12} />
+                  ) : (
+                    <FaChevronRight size={12} />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div
+            id="opinionsRef"
+            className="flex gap-4 overflow-x-auto pb-2 scrollbar-hidden"
+          >
+            {courseData.studentsOpinion.map((opinion, index) => (
+              <div
+                key={index}
+                className="border rounded-xl py-4 px-5 w-72 shrink-0"
+                style={{ borderColor: BRAND_LIGHT }}
               >
-                {dir === "left" ? (
-                  <FaChevronLeft size={12} />
-                ) : (
-                  <FaChevronRight size={12} />
-                )}
-              </button>
+                <div className="flex gap-0.5 mb-2">
+                  {[...Array(5)].map((_, i) =>
+                    i < opinion.rating ? (
+                      <FaStar key={i} className="text-yellow-400" size={13} />
+                    ) : (
+                      <FaRegStar key={i} size={13} className="text-gray-300" />
+                    ),
+                  )}
+                </div>
+                <p className="text-sm text-gray-600">{opinion.comments}</p>
+              </div>
             ))}
           </div>
         </div>
-        <div
-          ref={studentsOpinionCarouselRef}
-          className="flex gap-4 overflow-x-auto pb-2 scrollbar-hidden"
-        >
-          <>{renderStudentOpinions()}</>
+      )}
+
+      {/* Add Review */}
+      <div>
+        <h3 className="text-xl font-extrabold mb-3" style={{ color: BRAND }}>
+          Your Opinion
+        </h3>
+        <div className="flex gap-1 cursor-pointer mb-3">
+          {[1, 2, 3, 4, 5].map((s) => (
+            <div key={s} onClick={() => setRating(s)}>
+              {rating >= s ? (
+                <FaStar className="text-yellow-400" />
+              ) : (
+                <FaRegStar className="text-gray-300" />
+              )}
+            </div>
+          ))}
+        </div>
+        <textarea
+          value={comments}
+          onChange={(e) => setComments(e.target.value)}
+          className="w-full border-2 rounded-xl p-3 text-sm h-24 focus:outline-none resize-none"
+          style={{ borderColor: BRAND_LIGHT }}
+          placeholder="Share your experience..."
+        />
+        <div className="text-right mt-2">
+          <button
+            onClick={handleSubmitRating}
+            className="px-6 py-2 rounded-xl text-sm font-bold text-white"
+            style={{ backgroundColor: BRAND }}
+          >
+            Submit
+          </button>
         </div>
       </div>
 
       {/* Related Courses */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xl font-extrabold" style={{ color: BRAND }}>
-            Related Courses
-          </h3>
-          <div className="flex gap-2">
-            {["left", "right"].map((dir) => (
-              <button
-                key={dir}
-                onClick={() => scrollCarousel(reletedCoursesCarouselRef, dir)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
-                style={{ backgroundColor: BRAND }}
+      {reletedCourses?.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xl font-extrabold" style={{ color: BRAND }}>
+              Related Courses
+            </h3>
+            <div className="flex gap-2">
+              {["left", "right"].map((dir) => (
+                <button
+                  key={dir}
+                  onClick={() => scrollCarousel(reletedCoursesCarouselRef, dir)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
+                  style={{ backgroundColor: BRAND }}
+                >
+                  {dir === "left" ? (
+                    <FaChevronLeft size={12} />
+                  ) : (
+                    <FaChevronRight size={12} />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div
+            ref={reletedCoursesCarouselRef}
+            className="flex gap-4 overflow-x-auto pb-2 scrollbar-hidden"
+          >
+            {reletedCourses.map((c) => (
+              <Link
+                key={c._id}
+                to={`/singleCourse/${c._id}`}
+                state={{ course: c }}
+                className="shrink-0"
               >
-                {dir === "left" ? (
-                  <FaChevronLeft size={12} />
-                ) : (
-                  <FaChevronRight size={12} />
-                )}
-              </button>
+                <img
+                  src={c?.banner}
+                  alt={c?.title}
+                  className="w-28 h-28 rounded-xl object-cover border"
+                  style={{ borderColor: BRAND_LIGHT }}
+                />
+              </Link>
             ))}
           </div>
         </div>
-        <div
-          ref={reletedCoursesCarouselRef}
-          className="flex gap-4 overflow-x-auto pb-2 scrollbar-hidden"
-        >
-          {reletedCourses?.map((c) => (
-            <Link
-              key={c._id}
-              to={`/singleCourse/${c._id}`}
-              className="shrink-0"
-            >
-              <img
-                src={c?.banner}
-                alt={c?.title}
-                className="w-28 h-28 rounded-xl object-cover border"
-                style={{ borderColor: BRAND_LIGHT }}
-              />
-            </Link>
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 
-  // ── Header bar (shared)
-  const HeaderBar = ({ showJoinGroup = false }) => (
-    <div
-      className="px-6 py-6 mb-8"
-      style={{
-        background: `linear-gradient(135deg, ${BRAND_DARK}, ${BRAND_MID})`,
-      }}
-    >
-      <div className="lg:w-3/4 w-11/12 mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-2xl md:text-3xl font-extrabold text-white">
-            {courseData?.title}
-          </h3>
-          <div className="flex gap-1 mt-2 items-center">
-            {renderStars(calculateAverageRating())}
-            <p className="ml-2 text-white/60 text-sm">
-              {courseData?.studentsOpinion?.length || 0} Ratings
-            </p>
-          </div>
-          {courseData?.magnetLine && (
-            <p className="text-white/70 text-sm mt-2 max-w-lg">
-              {courseData.magnetLine}
-            </p>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {(user?.user?.role === "admin" ||
-            courseData?.instructorsId?.includes(userId)) && (
-            <Link
-              to={`/dashboard/admin/schedulemeet?${courseId}`}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white text-sm px-4 py-2 rounded-xl transition border border-white/20"
-            >
-              Create Meet
-            </Link>
-          )}
-          <button
-            onClick={() => downloadFiteAtURL(courseData?.syllabus)}
-            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white text-sm px-4 py-2 rounded-xl transition border border-white/20"
-          >
-            <IoMdDownload /> Syllabus
-          </button>
-          {showJoinGroup && (
-            <Link
-              to={courseData?.whatsappGroupLink}
-              target="_blank"
-              className="flex items-center gap-2 bg-[#25d366] hover:bg-[#1fb855] text-white text-sm px-4 py-2 rounded-xl transition"
-            >
-              <FaWhatsapp /> Join Group
-            </Link>
-          )}
-        </div>
+  // Loading state
+  if (!courseData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div
+          className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin"
+          style={{ borderColor: BRAND, borderTopColor: "transparent" }}
+        />
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div>
-      {/* ── Not enrolled ── */}
-      {!isAdminOrStudent && (
-        <div>
-          <Navbar />
-          <div className="pt-[73px] pb-20">
-            <HeaderBar />
-            <div className="lg:w-3/4 w-11/12 mx-auto">
-              <div className="grid lg:grid-cols-7 grid-cols-1 gap-8">
-                <div className="col-span-5">{commonSections}</div>
-                <div className="lg:col-span-2 col-span-5 lg:sticky lg:top-24 h-fit">
-                  <CoursePayment course={courseData} />
-                </div>
-              </div>
-            </div>
-          </div>
-          <Footer />
-        </div>
-      )}
+    <div className="min-h-screen" style={{ backgroundColor: "#fafbff" }}>
+      <Navbar />
+      <div className="pt-[73px] pb-20">
+        {/* Hero Banner */}
+        <div
+          className="relative overflow-hidden"
+          style={{
+            background: `linear-gradient(135deg, ${BRAND_DARK}, ${BRAND_MID})`,
+          }}
+        >
+          <div
+            className="absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl opacity-10 pointer-events-none"
+            style={{ backgroundColor: "#fff" }}
+          />
 
-      {/* ── Enrolled student / admin ── */}
-      {isAdminOrStudent && (
-        <div className="lg:flex block">
-          <div className="lg:fixed top-0 z-10">
-            <Sidebar />
-          </div>
-          <div className="lg:pl-72 pl-0 w-full">
-            <HeaderBar showJoinGroup />
-            <div className="lg:w-full w-11/12 mx-auto px-4 pb-20">
-              <div className="grid lg:grid-cols-7 grid-cols-1 gap-6">
-                <div className="col-span-5">
-                  {showQuiz ? (
-                    renderQuizContent()
-                  ) : (
-                    <video
-                      className="w-full rounded-2xl border"
-                      style={{ height: 480, borderColor: BRAND_LIGHT }}
-                      src={selectedVideo?.videoLink}
-                      controls
-                    />
-                  )}
-                  {/* Mobile video list */}
-                  <div className="lg:hidden mt-4">
-                    <VideoList />
+          <div className="lg:w-3/4 w-11/12 mx-auto py-10">
+            <div className="grid lg:grid-cols-2 gap-8 items-center">
+              {/* Left */}
+              <motion.div
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+                className="flex flex-col gap-4"
+              >
+                {courseData?.category && (
+                  <span
+                    className="inline-flex w-fit px-3 py-1 rounded-full text-xs font-bold text-white border border-white/20"
+                    style={{ backgroundColor: "rgba(255,255,255,0.15)" }}
+                  >
+                    📚 {courseData.category}
+                  </span>
+                )}
+                <h1 className="text-2xl md:text-4xl font-extrabold text-white leading-tight">
+                  {courseData?.title}
+                </h1>
+                {courseData?.magnetLine && (
+                  <p className="text-white/70 text-sm md:text-base leading-relaxed max-w-lg">
+                    {courseData.magnetLine}
+                  </p>
+                )}
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-0.5">
+                    {renderStars(calculateAverageRating())}
                   </div>
-                  {courseComplete && quizComplete && (
-                    <div className="mt-4">
-                      <button
-                        onClick={courseCompleteAction}
-                        className="w-full py-3 rounded-xl font-bold text-white"
-                        style={{ backgroundColor: BRAND }}
-                      >
-                        🎓 Complete Course
-                      </button>
-                    </div>
-                  )}
-                  <div className="mt-10">{commonSections}</div>
+                  <span className="text-white font-bold text-sm">
+                    {calculateAverageRating()}
+                  </span>
+                  <span className="text-white/50 text-xs">
+                    ({courseData?.studentsOpinion?.length || 0} ratings)
+                  </span>
                 </div>
-                {/* Desktop video list */}
-                <div className="col-span-2 hidden lg:block sticky top-6 h-fit">
-                  <VideoList />
-                  {courseComplete && quizComplete && (
-                    <button
-                      onClick={courseCompleteAction}
-                      className="w-full py-3 rounded-xl font-bold text-white mt-4"
-                      style={{ backgroundColor: BRAND }}
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {[
+                    `🎬 ${courseData?.videos?.length || 0} Videos`,
+                    "📡 Live Classes",
+                    "📝 Quiz",
+                    "🏆 Certificate",
+                  ].map((item) => (
+                    <span
+                      key={item}
+                      className="px-3 py-1 rounded-full text-xs font-semibold text-white border border-white/20"
+                      style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
                     >
-                      🎓 Complete Course
-                    </button>
-                  )}
+                      {item}
+                    </span>
+                  ))}
                 </div>
-              </div>
+                {courseData?.syllabus && (
+                  <div className="flex gap-3 flex-wrap mt-1">
+                    <button
+                      onClick={() => downloadFiteAtURL(courseData.syllabus)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white border border-white/20 hover:bg-white/10 transition"
+                    >
+                      <IoMdDownload /> Syllabus
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Right — Banner image */}
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+                className="relative hidden lg:block"
+              >
+                <div
+                  className="absolute inset-0 rounded-2xl blur-xl opacity-30"
+                  style={{ backgroundColor: BRAND }}
+                />
+                <img
+                  src={courseData?.banner}
+                  alt={courseData?.title}
+                  className="relative z-10 w-full rounded-2xl shadow-2xl object-cover"
+                  style={{ maxHeight: 280 }}
+                />
+              </motion.div>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Content */}
+        <div className="lg:w-3/4 w-11/12 mx-auto mt-10">
+          <div className="grid lg:grid-cols-7 grid-cols-1 gap-8">
+            <div className="col-span-5">{commonSections}</div>
+            <div className="lg:col-span-2 col-span-5 lg:sticky lg:top-24 h-fit">
+              <CoursePayment course={courseData} />
+            </div>
+          </div>
+        </div>
+      </div>
+      <Footer />
     </div>
   );
 };

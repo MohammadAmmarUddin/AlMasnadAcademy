@@ -47,7 +47,6 @@ const AllCourses = () => {
 
   return (
     <div className="w-11/12 lg:w-3/4 mx-auto pb-20 mt-24">
-
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -84,7 +83,7 @@ const AllCourses = () => {
             className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border"
             style={{ borderColor: BRAND_LIGHT }}
           >
-            <Link to={`/singleCourse/${course?._id}`}>
+            <Link to={`/singleCourse/${course._id}`} state={{ course }}>
               {/* Image */}
               <div className="relative overflow-hidden h-48">
                 <img

@@ -130,7 +130,10 @@ const PopularCourses = () => {
                     border: "1px solid #f0f0f8",
                   }}
                 >
-                  <Link to={`/singleCourse/${course._id}`}>
+                  <Link
+                    to={`/singleCourse/${course._id}`}
+                    state={{ course }} // ← এটা যোগ করুন
+                  >
                     {/* Image */}
                     <div className="relative overflow-hidden h-48">
                       <img
