@@ -206,10 +206,10 @@ const CoursePayment = ({ course }) => {
       </div>
 
       <div className="p-5">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           {step === 1 && (
             <motion.div
-              key="s1"
+              key="step-1"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -247,7 +247,7 @@ const CoursePayment = ({ course }) => {
 
           {step === 2 && (
             <motion.div
-              key="s2"
+              key="step-2"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -368,20 +368,18 @@ const CoursePayment = ({ course }) => {
 
           {step === 3 && (
             <motion.div
-              key="s3"
+              key="step-3"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
               className="flex flex-col items-center gap-4 py-2 text-center"
             >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              <div
                 className="w-16 h-16 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: BRAND_LIGHT }}
               >
                 <FaCheckCircle style={{ color: BRAND }} className="text-4xl" />
-              </motion.div>
+              </div>
               <div>
                 <h3 className="font-extrabold text-lg text-gray-800">
                   তথ্য জমা হয়েছে! ✅
@@ -1027,12 +1025,12 @@ const SingleCourse = () => {
         <h3 className="text-xl font-extrabold mb-3" style={{ color: BRAND }}>
           Course Details
         </h3>
-        <div
-          className="border rounded-xl p-4 text-sm text-gray-700 leading-relaxed"
+        <article
+          className="border rounded-xl p-4 text-sm text-gray-700 leading-relaxed prose max-w-none"
           style={{ borderColor: BRAND_LIGHT }}
         >
           {parse(courseData?.details || "No course details available.")}
-        </div>
+        </article>
       </div>
 
       {/* Contents */}
@@ -1137,7 +1135,7 @@ const SingleCourse = () => {
           ref={studentsOpinionCarouselRef}
           className="flex gap-4 overflow-x-auto pb-2 scrollbar-hidden"
         >
-          {renderStudentOpinions()}
+          <>{renderStudentOpinions()}</>
         </div>
       </div>
 
