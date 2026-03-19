@@ -10,6 +10,10 @@ import {
   FaStar,
   FaStarHalfAlt,
   FaWhatsapp,
+  FaMobileAlt,
+  FaCheckCircle,
+  FaCopy,
+  FaBitcoin,
 } from "react-icons/fa";
 import { PiExam } from "react-icons/pi";
 import Navbar from "./Navbar";
@@ -21,15 +25,426 @@ import { FaRegCirclePlay } from "react-icons/fa6";
 import useAuthContext from "../hooks/useAuthContext";
 import Swal from "sweetalert2";
 import parse from "html-react-parser";
+import { motion, AnimatePresence } from "framer-motion";
 
+const BRAND = "#0b148f";
+const BRAND_DARK = "#090f6e";
+const BRAND_LIGHT = "#eef0fd";
+const BRAND_MID = "#1a2ba6";
+const WHATSAPP_BD = "8801883128299";
+const WHATSAPP_IN = "919365262648";
+const BKASH_NUMBER = "01883128299";
+const NAGAD_NUMBER = "01883128299";
+
+// ─── CoursePayment ───────────────────────────────────────
+const CoursePayment = ({ course }) => {
+  const [step, setStep] = useState(1);
+  const [method, setMethod] = useState(null);
+  const [phone, setPhone] = useState("");
+  const [transactionId, setTransactionId] = useState("");
+  const [copied, setCopied] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const copy = (text, key) => {
+    navigator.clipboard.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const buildMsg = () =>
+    encodeURIComponent(
+      `
+🕌 *AL MASNAD Academy — ভর্তির আবেদন*
+📚 *কোর্স:* ${course?.title}
+💰 *মূল্য:* ৳${course?.price?.toLocaleString()}
+💳 *মাধ্যম:* ${method === "bkash" ? "bKash" : "Nagad"}
+📱 *নম্বর:* ${phone}
+🔖 *ট্রানজেকশন:* ${transactionId}
+✅ অনুগ্রহ করে আমার ভর্তি নিশ্চিত করুন।
+  `.trim(),
+    );
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setLoading(true);
+    const baseUrl = import.meta.env.VITE_MAHAD_baseUrl;
+    fetch(`${baseUrl}/api/payment/manual`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        courseId: course?._id,
+        courseTitle: course?.title,
+        amount: course?.price,
+        paymentMethod: method,
+        phone,
+        transactionId,
+      }),
+    }).catch(() => {});
+    setTimeout(() => {
+      setLoading(false);
+      setStep(3);
+    }, 800);
+  };
+
+  const methods = [
+    {
+      id: "bkash",
+      label: "bKash",
+      sub: `Send Money: ${BKASH_NUMBER}`,
+      icon: <span className="text-white font-extrabold text-xl">b</span>,
+      iconBg: "#e2136e",
+      border: "#e2136e",
+      bg: "#fff0f7",
+      action: () => {
+        setMethod("bkash");
+        setStep(2);
+      },
+    },
+    {
+      id: "nagad",
+      label: "Nagad",
+      sub: `Send Money: ${NAGAD_NUMBER}`,
+      icon: <span className="text-white font-extrabold text-xl">N</span>,
+      iconBg: "#f7941d",
+      border: "#f7941d",
+      bg: "#fff8f0",
+      action: () => {
+        setMethod("nagad");
+        setStep(2);
+      },
+    },
+    {
+      id: "india",
+      label: "🇮🇳 ভারতীয় শিক্ষার্থী",
+      sub: "Google Pay / PhonePe — WhatsApp এ যোগাযোগ করুন",
+      icon: <FaWhatsapp size={20} className="text-white" />,
+      iconBg: "#25d366",
+      border: "#25d366",
+      bg: "#f0fdf4",
+      action: () =>
+        window.open(
+          `https://wa.me/${WHATSAPP_IN}?text=${encodeURIComponent(`আমি ${course?.title} কোর্সে ভর্তি হতে চাই। আমি ভারত থেকে পেমেন্ট করতে চাই।`)}`,
+          "_blank",
+        ),
+    },
+    {
+      id: "binance",
+      label: "Binance / Crypto",
+      sub: "WhatsApp এ যোগাযোগ করুন পেমেন্টের জন্য",
+      icon: <FaBitcoin size={20} className="text-white" />,
+      iconBg: "#f0b90b",
+      border: "#f0b90b",
+      bg: "#fffdf0",
+      action: () =>
+        window.open(
+          `https://wa.me/${WHATSAPP_BD}?text=${encodeURIComponent(`আমি ${course?.title} কোর্সে ভর্তি হতে চাই। Binance এ পেমেন্ট করতে চাই।`)}`,
+          "_blank",
+        ),
+    },
+  ];
+
+  return (
+    <div
+      className="rounded-2xl overflow-hidden border shadow-lg"
+      style={{ borderColor: BRAND_LIGHT }}
+    >
+      <div
+        className="px-6 py-5"
+        style={{
+          background: `linear-gradient(135deg, ${BRAND_DARK}, ${BRAND_MID})`,
+        }}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-white/60 text-xs mb-1">কোর্স মূল্য</p>
+            <p className="text-white text-3xl font-extrabold">
+              ৳{course?.price?.toLocaleString()}
+            </p>
+            {course?.discountPrice && (
+              <p className="text-white/40 text-xs line-through mt-0.5">
+                ৳{course?.discountPrice?.toLocaleString()}
+              </p>
+            )}
+          </div>
+          <div
+            className="px-3 py-1.5 rounded-full text-xs font-bold text-white border border-white/20"
+            style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
+          >
+            ম্যানুয়াল পেমেন্ট
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {["মাধ্যম", "তথ্য", "সম্পন্ন"].map((label, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300"
+                  style={{
+                    backgroundColor:
+                      step >= i + 1 ? "#fff" : "rgba(255,255,255,0.2)",
+                    color: step >= i + 1 ? BRAND : "rgba(255,255,255,0.5)",
+                  }}
+                >
+                  {step > i + 1 ? "✓" : i + 1}
+                </div>
+                <span className="text-white/50 text-xs hidden sm:block">
+                  {label}
+                </span>
+              </div>
+              {i < 2 && (
+                <div
+                  className="h-0.5 w-6 rounded-full"
+                  style={{
+                    backgroundColor:
+                      step > i + 1 ? "#fff" : "rgba(255,255,255,0.2)",
+                  }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="p-5">
+        <AnimatePresence mode="wait">
+          {step === 1 && (
+            <motion.div
+              key="s1"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="flex flex-col gap-3"
+            >
+              <p className="text-sm font-bold mb-1" style={{ color: BRAND }}>
+                পেমেন্ট মাধ্যম বেছে নিন
+              </p>
+              {methods.map((m) => (
+                <motion.button
+                  key={m.id}
+                  whileHover={{ scale: 1.02, x: 3 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={m.action}
+                  className="flex items-center gap-3 p-3.5 rounded-xl border-2 text-left w-full transition-all hover:shadow-md"
+                  style={{ borderColor: m.border, backgroundColor: m.bg }}
+                >
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: m.iconBg }}
+                  >
+                    {m.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-800 text-sm">{m.label}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                      {m.sub}
+                    </p>
+                  </div>
+                  <span className="text-gray-400 shrink-0 text-sm">→</span>
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
+
+          {step === 2 && (
+            <motion.div
+              key="s2"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="flex flex-col gap-4"
+            >
+              <div
+                className="p-4 rounded-xl"
+                style={{ backgroundColor: BRAND_LIGHT }}
+              >
+                <p className="font-bold text-sm mb-2" style={{ color: BRAND }}>
+                  📋 পেমেন্ট নির্দেশনা
+                </p>
+                <p className="text-gray-600 text-xs leading-relaxed mb-3">
+                  নিচের নম্বরে{" "}
+                  <strong>{method === "bkash" ? "bKash" : "Nagad"}</strong> থেকে{" "}
+                  <strong>৳{course?.price?.toLocaleString()}</strong> Send Money
+                  করুন:
+                </p>
+                <div
+                  className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border"
+                  style={{ borderColor: "#dde2f8" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <FaMobileAlt style={{ color: BRAND }} />
+                    <span className="font-extrabold" style={{ color: BRAND }}>
+                      {method === "bkash" ? BKASH_NUMBER : NAGAD_NUMBER}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() =>
+                      copy(
+                        method === "bkash" ? BKASH_NUMBER : NAGAD_NUMBER,
+                        "num",
+                      )
+                    }
+                    className="text-xs flex items-center gap-1 px-3 py-1.5 rounded-lg font-semibold"
+                    style={{ color: BRAND, backgroundColor: BRAND_LIGHT }}
+                  >
+                    {copied === "num" ? (
+                      <>
+                        <FaCheckCircle /> Copied!
+                      </>
+                    ) : (
+                      <>
+                        <FaCopy /> Copy
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+              <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                {[
+                  {
+                    label: "যে নম্বর থেকে টাকা পাঠিয়েছেন",
+                    value: phone,
+                    setter: setPhone,
+                    placeholder: "01XXXXXXXXX",
+                    type: "tel",
+                  },
+                  {
+                    label: "ট্রানজেকশন আইডি",
+                    value: transactionId,
+                    setter: setTransactionId,
+                    placeholder: "e.g. 8N7A6B5C4D",
+                    type: "text",
+                  },
+                ].map(({ label, value, setter, placeholder, type }) => (
+                  <div key={label}>
+                    <label
+                      className="block text-xs font-semibold mb-1.5"
+                      style={{ color: BRAND }}
+                    >
+                      {label}
+                    </label>
+                    <input
+                      type={type}
+                      value={value}
+                      onChange={(e) => setter(e.target.value)}
+                      placeholder={placeholder}
+                      required
+                      className="w-full border-2 rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all duration-300"
+                      style={{
+                        borderColor: value ? BRAND : "#e5e7eb",
+                        boxShadow: value ? `0 0 0 3px ${BRAND_LIGHT}` : "none",
+                      }}
+                    />
+                  </div>
+                ))}
+                <div className="flex gap-3 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="px-4 py-2.5 rounded-xl text-sm font-semibold border-2"
+                    style={{ borderColor: BRAND_LIGHT, color: BRAND }}
+                  >
+                    ← ফিরে
+                  </button>
+                  <motion.button
+                    type="submit"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    disabled={loading || !phone || !transactionId}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50"
+                    style={{
+                      background: `linear-gradient(135deg, ${BRAND_DARK}, ${BRAND_MID})`,
+                    }}
+                  >
+                    {loading ? (
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      "নিশ্চিত করুন →"
+                    )}
+                  </motion.button>
+                </div>
+              </form>
+            </motion.div>
+          )}
+
+          {step === 3 && (
+            <motion.div
+              key="s3"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center gap-4 py-2 text-center"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="w-16 h-16 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: BRAND_LIGHT }}
+              >
+                <FaCheckCircle style={{ color: BRAND }} className="text-4xl" />
+              </motion.div>
+              <div>
+                <h3 className="font-extrabold text-lg text-gray-800">
+                  তথ্য জমা হয়েছে! ✅
+                </h3>
+                <p className="text-gray-500 text-sm mt-1">
+                  এখন WhatsApp এ যোগাযোগ করুন।
+                </p>
+              </div>
+              <div
+                className="w-full rounded-xl p-4 text-left text-xs space-y-2 border"
+                style={{ backgroundColor: BRAND_LIGHT, borderColor: "#dde2f8" }}
+              >
+                {[
+                  { label: "কোর্স", value: course?.title },
+                  {
+                    label: "মূল্য",
+                    value: `৳${course?.price?.toLocaleString()}`,
+                  },
+                  {
+                    label: "মাধ্যম",
+                    value: method === "bkash" ? "bKash" : "Nagad",
+                  },
+                  { label: "নম্বর", value: phone },
+                  { label: "ট্রানজেকশন", value: transactionId },
+                ].map(({ label, value }) => (
+                  <p key={label}>
+                    <span className="text-gray-400">{label}: </span>
+                    <span className="font-semibold" style={{ color: BRAND }}>
+                      {value}
+                    </span>
+                  </p>
+                ))}
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() =>
+                  window.open(
+                    `https://wa.me/${WHATSAPP_BD}?text=${buildMsg()}`,
+                    "_blank",
+                  )
+                }
+                className="w-full py-3.5 rounded-xl font-bold text-white flex items-center justify-center gap-2 shadow-lg"
+                style={{ backgroundColor: "#25d366" }}
+              >
+                <FaWhatsapp size={20} /> WhatsApp এ যোগাযোগ করুন
+              </motion.button>
+              <p className="text-xs text-gray-400">
+                সাধারণত ২৪ ঘণ্টার মধ্যে ভর্তি নিশ্চিত করা হয়।
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main SingleCourse ────────────────────────────────────
 const SingleCourse = () => {
   const { id } = useParams();
-
   const courseId = id;
-
-  console.log("courseId", courseId);
   const { user } = useAuthContext();
-  // const [isInstructor, setIsInstructor] = useState(false);
   const [courseData, setCourseData] = useState(null);
   const [reletedCourses, setreletedCourses] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
@@ -42,7 +457,6 @@ const SingleCourse = () => {
   const [courseComplete, setCourseComplete] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [quizSubmitted, setQuizSubmitted] = useState(false);
-  // const [answers, setAnswers] = useState({});
   const [score, setScore] = useState(0);
   const [quizzes, setQuizzes] = useState([]);
   const [quizComplete, setQuizComplete] = useState(false);
@@ -50,6 +464,8 @@ const SingleCourse = () => {
 
   const studentsOpinionCarouselRef = useRef(null);
   const reletedCoursesCarouselRef = useRef(null);
+
+  const baseUrl = import.meta.env.VITE_MAHAD_baseUrl; // ✅ fixed
 
   const discountAmount =
     courseData?.price && courseData?.discount
@@ -62,14 +478,13 @@ const SingleCourse = () => {
   useEffect(() => {
     if (courseData && courseData.students && userId) {
       const currentStudent = courseData.students.find(
-        (student) => student.studentsId === userId
+        (s) => s.studentsId === userId,
       );
-
       if (currentStudent) {
         setIsAdminOrStudent(true);
         setUnlockedVideos(currentStudent.unlockedVideo || 1);
         setCourseComplete(
-          currentStudent.unlockedVideo === courseData.videos.length
+          currentStudent.unlockedVideo === courseData.videos.length,
         );
       } else {
         setIsAdminOrStudent(false);
@@ -77,414 +492,423 @@ const SingleCourse = () => {
       }
     }
   }, [courseData, userId]);
-  const baseUrl = import.meta.env.VITE_almasnad_baseUrl;
+
   const courseCompleteAction = async () => {
     try {
-      const response = await fetch(
+      const res = await fetch(
         `${baseUrl}/api/course/completeCourse/${userId}`,
         {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ _id: courseData._id }),
-        }
+        },
       );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to complete the course");
-      }
-
-      console.log("Course completed successfully:", data);
-
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
       Swal.fire({
         title: "Congratulations!",
         text: "You have completed the course!",
         icon: "success",
-        confirmButtonText: "OK",
+        confirmButtonColor: BRAND,
       });
-
       setCourseComplete(true);
       fetchSingleCourse();
     } catch (error) {
-      console.error("Error completing the course:", error);
       Swal.fire({
         title: "Error",
-        text:
-          error.message || "Failed to complete the course. Please try again.",
+        text: error.message,
         icon: "error",
-        confirmButtonText: "OK",
+        confirmButtonColor: BRAND,
       });
     }
   };
 
   const downloadFiteAtURL = (url) => {
-    const fileName = url?.split("/").pop().split("?")[0];
     const aTag = document.createElement("a");
     aTag.href = url;
-    aTag.setAttribute("download", fileName);
+    aTag.setAttribute("download", url?.split("/").pop().split("?")[0]);
     document.body.appendChild(aTag);
     aTag.click();
     aTag.remove();
   };
+
   const unlockNextVideo = async () => {
     if (unlockedVideos < courseData.videos.length) {
-      try {
-        const response = await fetch(
-          `${baseUrl}/api/course/unlockVideo/${userId}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ _id: courseData._id }),
-          }
-        );
-        if (response.ok) {
-          const newUnlockedVideos = unlockedVideos + 1;
-          setUnlockedVideos(newUnlockedVideos);
-          if (newUnlockedVideos === courseData.videos.length) {
-            setCourseComplete(true);
-          }
-        } else {
-          console.error("Failed to unlock next video");
-        }
-      } catch (error) {
-        console.error("Error unlocking video:", error);
+      const res = await fetch(`${baseUrl}/api/course/unlockVideo/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ _id: courseData._id }),
+      });
+      if (res.ok) {
+        const next = unlockedVideos + 1;
+        setUnlockedVideos(next);
+        if (next === courseData.videos.length) setCourseComplete(true);
       }
     }
-  };
-
-  const handleRatingClick = (rate) => {
-    setRating(rate);
   };
 
   const handleSubmitRating = async () => {
-    const url = `${baseUrl}/api/course/giveRating/${courseData._id}`;
     try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const res = await fetch(
+        `${baseUrl}/api/course/giveRating/${courseData._id}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reviewerId: userId,
+            rating: rating.toString(),
+            comments,
+          }),
         },
-        body: JSON.stringify({
-          reviewerId: userId,
-          rating: rating.toString(),
-          comments,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        if (data.message === "An user cannot give multiple reviews") {
-          Swal.fire({
-            icon: "error",
-            title: "Oops...",
-            text: data.message,
-          });
-        } else {
-          throw new Error("Failed to submit rating");
-        }
+      );
+      if (!res.ok) {
+        const data = await res.json();
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: data.message,
+          confirmButtonColor: BRAND,
+        });
       } else {
-        const data = await response.json();
-        console.log("Rating submitted successfully", data);
         Swal.fire({
           icon: "success",
           title: "Thank You",
-          text: "Your review is submitted successfully",
+          text: "Your review is submitted!",
+          confirmButtonColor: BRAND,
         });
         fetchSingleCourse();
       }
-    } catch (error) {
-      console.error("Error submitting rating:", error);
-    }
+    } catch {}
   };
 
   const fetchSingleCourse = async () => {
     try {
-      const response = await fetch(
-        `${baseUrl}/api/course/getSingleCourse/${id}`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch course");
-      }
-      const data = await response.json();
+      const res = await fetch(`${baseUrl}/api/course/getSingleCourse/${id}`);
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json();
       setCourseData(data);
       setSelectedVideo(data.videos[0]);
-      setQuizzes(
-        data.quiz?.map((q) => ({
-          ...q,
-          selectedAnswer: null,
-        })) || []
-      );
-    } catch (error) {
-      console.error("Error fetching course:", error);
-    }
+      setQuizzes(data.quiz?.map((q) => ({ ...q, selectedAnswer: null })) || []);
+    } catch {}
   };
 
   const fetchreletedCourses = () => {
-    const url = `${baseUrl}/api/course/getAllCourses`;
-    fetch(url)
-      .then((res) => res.json())
+    fetch(`${baseUrl}/api/course/getAllCourses`)
+      .then((r) => r.json())
       .then((data) => {
-        const courseKeywords = courseData?.keywords?.map((keyword) =>
-          keyword?.toLowerCase().trim()
+        const keywords = courseData?.keywords?.map((k) =>
+          k?.toLowerCase().trim(),
         );
-        const filteredCourses = data?.filter((course) =>
-          course?.keywords?.some((keyword) =>
-            courseKeywords?.includes(keyword?.toLowerCase().trim())
-          )
+        setreletedCourses(
+          data?.filter((c) =>
+            c?.keywords?.some((k) =>
+              keywords?.includes(k?.toLowerCase().trim()),
+            ),
+          ),
         );
-        setreletedCourses(filteredCourses);
       })
-      .catch((error) => console.log(error));
-  };
-
-  const fetchAllUsers = () => {
-    const url = `${baseUrl}/api/user/allUsers`;
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => {
-        setAllUsers(data);
-      })
-      .catch((error) => console.log(error));
+      .catch(() => {});
   };
 
   useEffect(() => {
     fetchSingleCourse();
-    fetchAllUsers();
+    fetch(`${baseUrl}/api/user/allUsers`)
+      .then((r) => r.json())
+      .then(setAllUsers)
+      .catch(() => {});
   }, [id]);
-
   useEffect(() => {
-    if (courseData && courseData.videos && !selectedVideo) {
+    if (courseData?.videos && !selectedVideo)
       setSelectedVideo(courseData.videos[0]);
-    }
-    if (courseData && courseData.keywords) {
-      fetchreletedCourses();
-    }
+    if (courseData?.keywords) fetchreletedCourses();
   }, [courseData]);
 
   const handleVideoSelect = (video, index) => {
     if (!showQuiz) {
       setSelectedVideo(video);
       setCurrentVideoIndex(index);
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
-  const scrollCarousel = (ref, direction) => {
-    if (ref.current) {
-      ref.current.scrollBy({
-        left: direction === "left" ? -200 : 200,
-        behavior: "smooth",
-      });
-    }
-  };
+  const scrollCarousel = (ref, dir) =>
+    ref.current?.scrollBy({
+      left: dir === "left" ? -200 : 200,
+      behavior: "smooth",
+    });
 
   const calculateAverageRating = () => {
-    if (
-      !courseData?.studentsOpinion ||
-      courseData.studentsOpinion.length === 0
-    ) {
-      return 0;
-    }
-
-    const totalRating = courseData?.studentsOpinion?.reduce(
-      (acc, opinion) => acc + parseInt(opinion.rating),
-      0
+    if (!courseData?.studentsOpinion?.length) return 0;
+    return parseFloat(
+      (
+        courseData.studentsOpinion.reduce((a, o) => a + parseInt(o.rating), 0) /
+        courseData.studentsOpinion.length
+      ).toFixed(1),
     );
-
-    const averageRating = totalRating / courseData.studentsOpinion.length;
-
-    return parseFloat(averageRating.toFixed(1));
   };
 
-  const renderStars = (averageRating) => {
-    const stars = [];
-    const fullStars = Math.floor(averageRating);
-    const halfStar = averageRating % 1 >= 0.25 && averageRating % 1 < 0.75;
-    const emptyStars = 5 - Math.ceil(averageRating);
-
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(<FaStar key={i} className="text-yellow-400" />);
-    }
-
-    if (halfStar) {
-      stars.push(<FaStarHalfAlt key={fullStars} className="text-yellow-400" />);
-    }
-
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(
-        <FaRegStar key={fullStars + i + 1} className="text-yellow-400" />
-      );
-    }
-
-    return stars;
+  const renderStars = (avg) => {
+    const full = Math.floor(avg);
+    const half = avg % 1 >= 0.25 && avg % 1 < 0.75;
+    return [
+      ...Array(full)
+        .fill(null)
+        .map((_, i) => <FaStar key={`f${i}`} className="text-yellow-400" />),
+      ...(half ? [<FaStarHalfAlt key="h" className="text-yellow-400" />] : []),
+      ...Array(5 - Math.ceil(avg))
+        .fill(null)
+        .map((_, i) => <FaRegStar key={`e${i}`} className="text-yellow-400" />),
+    ];
   };
 
-  const handleQuizChange = (quizIndex, value) => {
-    const updatedQuizzes = [...quizzes];
-    updatedQuizzes[quizIndex].selectedAnswer = value;
-    setQuizzes(updatedQuizzes);
-  };
-
-  const handleQuizOpen = () => {
-    setShowQuiz(true);
-    setSelectedVideo(null);
+  const handleQuizChange = (qi, val) => {
+    const updated = [...quizzes];
+    updated[qi].selectedAnswer = val;
+    setQuizzes(updated);
   };
 
   const handleQuizSubmit = () => {
-    let newScore = 0;
-    quizzes.forEach((quiz) => {
-      if (quiz.selectedAnswer === quiz.ans.toString()) {
-        newScore++;
-      }
+    let s = 0;
+    quizzes.forEach((q) => {
+      if (q.selectedAnswer === q.ans.toString()) s++;
     });
-    setScore(newScore);
+    setScore(s);
     setQuizSubmitted(true);
     setUnlockedVideos(courseData.videos.length);
-
-    const currentQuizState = [...quizzes];
-
-    quizCompleteAction(newScore).then(() => {
-      setQuizzes(currentQuizState);
-    });
-  };
-
-  const handleCloseQuiz = () => {
-    setShowQuiz(false);
-    setSelectedVideo(courseData.videos[0]);
+    const saved = [...quizzes];
+    quizCompleteAction(s).then(() => setQuizzes(saved));
   };
 
   const quizCompleteAction = async (newScore) => {
-    const quizMarksPercentage = (newScore * 100) / quizzes.length;
-    console.log(
-      "🚀 ~ quizCompleteAction ~ quizMarksPercentage:",
-      quizMarksPercentage
-    );
-    console.log(score);
-    try {
-      if (quizMarksPercentage < 40) {
-        Swal.fire({
-          title: "Error",
-          text: `You got ${quizMarksPercentage}% marks in your quiz. You need to score at least 40% to complete the quiz.`,
-          icon: "error",
-          confirmButtonText: "OK",
-        });
-        return;
-      } else {
-        const response = await fetch(
-          `${baseUrl}/api/course/completeQuiz/${userId}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              _id: courseData._id,
-              quizMarks: newScore,
-              quizMarksPercentage: quizMarksPercentage,
-            }),
-          }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to complete the quiz");
-        }
-
-        console.log("quiz completed successfully:", data);
-        setQuizComplete(true);
-
-        Swal.fire({
-          title: "Congratulations!",
-          text: `You got ${quizMarksPercentage}% marks in your quiz. You have completed the quiz!`,
-          icon: "success",
-          confirmButtonText: "OK",
-        });
-      }
-
-      // Remove fetchSingleCourse() to preserve quiz state
-    } catch (error) {
-      console.error("Error completing the quiz:", error);
+    const pct = (newScore * 100) / quizzes.length;
+    if (pct < 40) {
       Swal.fire({
         title: "Error",
-        text: error.message || "Failed to complete the quiz. Please try again.",
+        text: `You got ${pct}%. Need at least 40%.`,
         icon: "error",
-        confirmButtonText: "OK",
+        confirmButtonColor: BRAND,
+      });
+      return;
+    }
+    try {
+      const res = await fetch(`${baseUrl}/api/course/completeQuiz/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          _id: courseData._id,
+          quizMarks: newScore,
+          quizMarksPercentage: pct,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      setQuizComplete(true);
+      Swal.fire({
+        title: "Congratulations!",
+        text: `You got ${pct}%!`,
+        icon: "success",
+        confirmButtonColor: BRAND,
+      });
+    } catch (err) {
+      Swal.fire({
+        title: "Error",
+        text: err.message,
+        icon: "error",
+        confirmButtonColor: BRAND,
       });
     }
   };
 
-  const renderQuizContent = () => (
-    <div className="container mx-auto p-8 rounded border w-full">
-      <h1 className="text-3xl font-bold mb-6 text-center">Quiz</h1>
-      {quizzes.map((quiz, quizIndex) => (
-        <div key={quiz.id} className="mb-6 bg-white border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">{quiz.text}</h2>
-          <div className="space-y-2">
-            <p className="font-semibold">
-              {quizIndex + 1}. {quiz.ques}
+  // ── Video list sidebar (reused in desktop + mobile)
+  const VideoList = () => (
+    <div
+      className="border rounded-xl h-[600px] relative overflow-hidden"
+      style={{ borderColor: BRAND_LIGHT }}
+    >
+      <div className="overflow-y-auto h-[calc(100%-60px)]">
+        {courseData?.videos?.map((video, index) => (
+          <p
+            key={video?._id}
+            onClick={() =>
+              !showQuiz &&
+              index < unlockedVideos &&
+              handleVideoSelect(video, index)
+            }
+            className={`m-3 p-2 rounded-xl border text-sm flex items-center gap-2 transition-all duration-200 ${
+              showQuiz
+                ? "text-gray-400 cursor-not-allowed"
+                : selectedVideo?._id === video._id
+                  ? "text-white font-semibold cursor-pointer"
+                  : index < unlockedVideos
+                    ? "text-gray-700 cursor-pointer hover:bg-gray-50"
+                    : "text-gray-400 cursor-not-allowed"
+            }`}
+            style={
+              selectedVideo?._id === video._id
+                ? { backgroundColor: BRAND, borderColor: BRAND }
+                : { borderColor: "#f0f0f8" }
+            }
+          >
+            {index < unlockedVideos ? (
+              <span className="text-xs opacity-60">{index + 1}.</span>
+            ) : (
+              <FaLock size={10} />
+            )}
+            <span className="truncate">{video?.videoTitle}</span>
+          </p>
+        ))}
+        {courseData?.videos?.length > 0 && (
+          <div
+            className="flex justify-between items-center m-3 p-2 rounded-xl border"
+            style={{ borderColor: BRAND_LIGHT }}
+          >
+            <p
+              className={`text-sm font-medium ${courseComplete ? "text-gray-700" : "text-gray-400"}`}
+            >
+              Quiz
             </p>
-            {quiz.options.map((option, optionIndex) => (
-              <div key={optionIndex} className="flex items-center space-x-2">
+            <button
+              onClick={
+                courseComplete
+                  ? () => {
+                      setShowQuiz(true);
+                      setSelectedVideo(null);
+                    }
+                  : undefined
+              }
+              disabled={!courseComplete}
+              className="text-xs px-3 py-1 rounded-lg font-bold text-white disabled:opacity-40"
+              style={{ backgroundColor: courseComplete ? BRAND : "#9ca3af" }}
+            >
+              Open
+            </button>
+          </div>
+        )}
+      </div>
+      {/* Prev/Next */}
+      <div
+        className="absolute bottom-0 left-0 right-0 p-3 flex justify-between border-t"
+        style={{ borderColor: BRAND_LIGHT }}
+      >
+        <button
+          onClick={() =>
+            currentVideoIndex > 0 &&
+            handleVideoSelect(
+              courseData.videos[currentVideoIndex - 1],
+              currentVideoIndex - 1,
+            )
+          }
+          disabled={currentVideoIndex === 0}
+          className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white disabled:opacity-40"
+          style={{ backgroundColor: BRAND }}
+        >
+          ← Prev
+        </button>
+        <button
+          onClick={() => {
+            if (currentVideoIndex < courseData.videos.length - 1) {
+              if (currentVideoIndex + 1 < unlockedVideos) {
+                handleVideoSelect(
+                  courseData.videos[currentVideoIndex + 1],
+                  currentVideoIndex + 1,
+                );
+              } else {
+                unlockNextVideo().then(() =>
+                  handleVideoSelect(
+                    courseData.videos[currentVideoIndex + 1],
+                    currentVideoIndex + 1,
+                  ),
+                );
+              }
+            }
+          }}
+          disabled={currentVideoIndex === courseData?.videos?.length - 1}
+          className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white disabled:opacity-40"
+          style={{ backgroundColor: BRAND }}
+        >
+          Next →
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderQuizContent = () => (
+    <div
+      className="rounded-2xl border p-6 w-full"
+      style={{ borderColor: BRAND_LIGHT }}
+    >
+      <h1
+        className="text-2xl font-extrabold mb-6 text-center"
+        style={{ color: BRAND }}
+      >
+        📝 Quiz
+      </h1>
+      {quizzes.map((quiz, qi) => (
+        <div
+          key={quiz.id}
+          className="mb-6 bg-white border rounded-xl p-5"
+          style={{ borderColor: BRAND_LIGHT }}
+        >
+          <p className="font-bold text-sm mb-3" style={{ color: BRAND }}>
+            {qi + 1}. {quiz.ques}
+          </p>
+          <div className="space-y-2">
+            {quiz.options.map((opt, oi) => (
+              <div key={oi} className="flex items-center gap-2">
                 <input
                   type="radio"
-                  id={`quiz-${quizIndex}-option-${optionIndex}`}
-                  name={`quiz-${quizIndex}-answer`}
-                  value={optionIndex.toString()}
-                  checked={quiz.selectedAnswer === optionIndex.toString()}
-                  onChange={(e) => handleQuizChange(quizIndex, e.target.value)}
-                  className="radio"
+                  id={`q${qi}-o${oi}`}
+                  name={`q${qi}`}
+                  value={oi.toString()}
+                  checked={quiz.selectedAnswer === oi.toString()}
+                  onChange={(e) => handleQuizChange(qi, e.target.value)}
                   disabled={quizSubmitted}
+                  className="accent-[#0b148f]"
                 />
                 <label
-                  htmlFor={`quiz-${quizIndex}-option-${optionIndex}`}
-                  className={`${
+                  htmlFor={`q${qi}-o${oi}`}
+                  className={`text-sm ${
                     quizSubmitted
-                      ? optionIndex.toString() === quiz.ans.toString()
+                      ? oi.toString() === quiz.ans.toString()
                         ? "text-green-600 font-bold"
-                        : quiz.selectedAnswer === optionIndex.toString()
-                        ? "text-red-600 font-bold"
-                        : "text-gray-700"
+                        : quiz.selectedAnswer === oi.toString()
+                          ? "text-red-500 font-bold"
+                          : "text-gray-600"
                       : "text-gray-700"
                   }`}
                 >
-                  {option}
+                  {opt}
                 </label>
-                {quizSubmitted &&
-                  optionIndex.toString() === quiz.ans.toString() && (
-                    <span className="text-green-600 ml-2">✓</span>
-                  )}
+                {quizSubmitted && oi.toString() === quiz.ans.toString() && (
+                  <span className="text-green-600 text-xs">✓</span>
+                )}
               </div>
             ))}
           </div>
         </div>
       ))}
-      {!quizSubmitted && (
+      {!quizSubmitted ? (
         <button
           onClick={handleQuizSubmit}
-          className="w-full bg-primary text-white font-bold py-2 px-4 rounded"
+          className="w-full py-3 rounded-xl font-bold text-white"
+          style={{ backgroundColor: BRAND }}
         >
-          Submit
+          Submit Quiz
         </button>
-      )}
-      {quizSubmitted && (
-        <div className="mt-6 text-center">
-          <h2 className="text-2xl font-bold">
-            Your Score: {score}/{quizzes.length}
-          </h2>
+      ) : (
+        <div className="text-center mt-4">
+          <p className="text-xl font-extrabold" style={{ color: BRAND }}>
+            Score: {score}/{quizzes.length}
+          </p>
           <button
-            onClick={handleCloseQuiz}
-            className="mt-4 w-full bg-primary text-white font-bold py-2 px-4 rounded"
+            onClick={() => {
+              setShowQuiz(false);
+              setSelectedVideo(courseData.videos[0]);
+            }}
+            className="mt-4 w-full py-3 rounded-xl font-bold text-white"
+            style={{ backgroundColor: BRAND }}
           >
-            Return to Videos
+            ← Return to Videos
           </button>
         </div>
       )}
@@ -492,245 +916,269 @@ const SingleCourse = () => {
   );
 
   const renderStudentOpinions = () => {
-    if (
-      !courseData?.studentsOpinion ||
-      courseData.studentsOpinion.length === 0
-    ) {
+    if (!courseData?.studentsOpinion?.length)
       return (
         <div className="w-full h-40 flex items-center justify-center">
-          <p className="text-gray-500 text-lg">No review yet</p>
+          <p className="text-gray-400">No review yet</p>
         </div>
       );
-    }
-
     return courseData.studentsOpinion.map((opinion, index) => {
-      const reviewer = allUsers.find((user) => user._id === opinion.reviewerId);
+      const reviewer = allUsers.find((u) => u._id === opinion.reviewerId);
       return (
-        <div key={index} className="border rounded-md py-3 px-4 w-[490px]">
-          <div className="flex gap-3">
-            <div className="w-20 rounded-full border mt-1">
-              <img
-                className="w-20 h-20 object-top rounded-full object-cover"
-                alt="Profile Picture"
-                src={reviewer?.img}
-              />
-            </div>
+        <div
+          key={index}
+          className="border rounded-xl py-4 px-5 w-[340px] shrink-0"
+          style={{ borderColor: BRAND_LIGHT }}
+        >
+          <div className="flex gap-3 items-center mb-3">
+            <img
+              className="w-12 h-12 rounded-full object-cover border-2"
+              src={reviewer?.img}
+              alt=""
+              style={{ borderColor: BRAND_LIGHT }}
+            />
             <div>
-              <h5 className="font-semibold text-xl">
+              <p className="font-bold text-sm">
                 {reviewer?.firstname} {reviewer?.lastname}
-              </h5>
-              <p>Student</p>
-              <p>{reviewer?.department || "Department Unknown"}</p>
+              </p>
+              <p className="text-xs text-gray-400">Student</p>
             </div>
           </div>
-          <div className="flex gap-1 mt-2 mb-5 items-center">
-            {[...Array(5)].map((star, i) =>
+          <div className="flex gap-0.5 mb-2">
+            {[...Array(5)].map((_, i) =>
               i < opinion.rating ? (
-                <FaStar key={i} className="text-yellow-400" />
+                <FaStar key={i} className="text-yellow-400" size={13} />
               ) : (
-                <FaRegStar key={i} />
-              )
+                <FaRegStar key={i} size={13} className="text-gray-300" />
+              ),
             )}
           </div>
-          <p>{opinion.comments}</p>
+          <p className="text-sm text-gray-600">{opinion.comments}</p>
         </div>
       );
     });
   };
 
-  useEffect(() => {}, [finalPrice]);
-
-  // console.log('final price',finalPrice, Math.round(finalPrice));
-
-  const makePayment = async () => {
-    const paymentData = {
-      courseId: courseData._id,
-      studentsId: userId,
-      price: Math.round(finalPrice),
-    };
-    console.log("Payment Data before sent:", paymentData);
-
-    fetch(`${baseUrl}/api/course/payment/order`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(paymentData),
-    })
-      .then((res) => res.json())
-      .then((result) => {
-        window.location.replace(result.url);
-        console.log(result);
-      })
-      .catch((error) => console.error("Error during payment process:", error));
-  };
-
   const commonSections = (
-    <div>
+    <div className="space-y-10">
+      {/* What we offer */}
       <div>
-        <h3 className="text-2xl font-semibold">What we offer</h3>
-        <div className="border rounded-md mt-2 py-3 px-4">
-          <div className="flex gap-3 items-center">
-            <MdOutlineSlowMotionVideo />
-            <p>{courseData?.videos?.length} videos</p>
-          </div>
-          <div className="flex gap-3 items-center">
-            <TbLivePhoto />
-            <p>Regular live classes</p>
-          </div>
-          <div className="flex gap-3 items-center">
-            <PiExam />
-            <p>Quiz after completing all lectures</p>
-          </div>
-          <div className="flex gap-3 items-center">
-            <GoNote />
-            <p>Free certificate after completing the course</p>
-          </div>
+        <h3 className="text-xl font-extrabold mb-3" style={{ color: BRAND }}>
+          What We Offer
+        </h3>
+        <div
+          className="border rounded-xl p-4 space-y-3"
+          style={{ borderColor: BRAND_LIGHT }}
+        >
+          {[
+            {
+              icon: <MdOutlineSlowMotionVideo />,
+              text: `${courseData?.videos?.length} Videos`,
+            },
+            { icon: <TbLivePhoto />, text: "Regular live classes" },
+            { icon: <PiExam />, text: "Quiz after completing all lectures" },
+            { icon: <GoNote />, text: "Free certificate after completing" },
+          ].map(({ icon, text }) => (
+            <div
+              key={text}
+              className="flex items-center gap-3 text-sm text-gray-700"
+            >
+              <span style={{ color: BRAND }}>{icon}</span> {text}
+            </div>
+          ))}
         </div>
       </div>
-      <div className="pt-10">
-        <h3 className="text-2xl font-semibold">Course Instructors</h3>
-        <div className="border rounded-md mt-2 py-3 px-4 flex flex-col gap-3">
-          {courseData?.instructorsId?.map((instructorId, index) => {
-            const instructor = allUsers.find(
-              (user) => user._id === instructorId
-            );
+
+      {/* Instructors */}
+      <div>
+        <h3 className="text-xl font-extrabold mb-3" style={{ color: BRAND }}>
+          Course Instructors
+        </h3>
+        <div
+          className="border rounded-xl p-4 space-y-4"
+          style={{ borderColor: BRAND_LIGHT }}
+        >
+          {courseData?.instructorsId?.map((instructorId, i) => {
+            const inst = allUsers.find((u) => u._id === instructorId);
             return (
-              <div key={index}>
-                <div className="flex gap-3 items-center">
-                  <div className="w-20 rounded-full border mt-1">
-                    <img
-                      className="w-20 h-20 object-top rounded-full object-cover"
-                      alt="Profile Picture"
-                      src={instructor?.img}
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold pb-2">
-                      {instructor?.firstname} {instructor?.lastname}
-                    </h3>
-                    <p>{instructor?.profession[0]?.position || "N/A"}</p>
-                    <p>{instructor?.profession[0]?.institution || "N/A"}</p>
-                  </div>
+              <div key={i} className="flex gap-3 items-center">
+                <img
+                  className="w-14 h-14 rounded-full object-cover border-2"
+                  src={inst?.img}
+                  alt=""
+                  style={{ borderColor: BRAND_LIGHT }}
+                />
+                <div>
+                  <p className="font-bold text-sm">
+                    {inst?.firstname} {inst?.lastname}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {inst?.profession?.[0]?.position || "Instructor"}
+                  </p>
                 </div>
               </div>
             );
           })}
         </div>
       </div>
-      <div className="pt-10">
-        <h3 className="text-2xl font-semibold">Course Details</h3>
-        <div className="border rounded-md mt-2 py-3 px-4">
-          <p className="text-justify">
-            {parse(courseData?.details || "No course details available.")}
-          </p>
+
+      {/* Course Details */}
+      <div>
+        <h3 className="text-xl font-extrabold mb-3" style={{ color: BRAND }}>
+          Course Details
+        </h3>
+        <div
+          className="border rounded-xl p-4 text-sm text-gray-700 leading-relaxed"
+          style={{ borderColor: BRAND_LIGHT }}
+        >
+          {parse(courseData?.details || "No course details available.")}
         </div>
       </div>
-      <div className="pt-10">
-        <h3 className="text-2xl font-semibold">Course Contents</h3>
-        <div className="border rounded-md mt-2 py-3 px-4 max-h-72 overflow-y-scroll overflow-x-hidden">
+
+      {/* Contents */}
+      <div>
+        <h3 className="text-xl font-extrabold mb-3" style={{ color: BRAND }}>
+          Course Contents
+        </h3>
+        <div
+          className="border rounded-xl p-4 max-h-64 overflow-y-auto space-y-2"
+          style={{ borderColor: BRAND_LIGHT }}
+        >
           {courseData?.videos?.map((video) => (
             <div
               key={video?._id}
-              className="whitespace-nowrap flex gap-2 items-center"
+              className="flex items-center gap-2 text-sm text-gray-700"
             >
-              <FaRegCirclePlay /> <p>{video?.videoTitle}</p>
+              <FaRegCirclePlay style={{ color: BRAND }} size={13} />{" "}
+              {video?.videoTitle}
             </div>
           ))}
         </div>
       </div>
-      <div className="pt-10">
-        <h3 className="text-2xl font-semibold">Course Requirements</h3>
-        <div className="border rounded-md mt-2 py-3 px-4">
-          <p className="text-justify">{courseData?.requirements}</p>
+
+      {/* Requirements */}
+      <div>
+        <h3 className="text-xl font-extrabold mb-3" style={{ color: BRAND }}>
+          Course Requirements
+        </h3>
+        <div
+          className="border rounded-xl p-4 text-sm text-gray-600"
+          style={{ borderColor: BRAND_LIGHT }}
+        >
+          {courseData?.requirements}
         </div>
       </div>
+
+      {/* Rating */}
       {isAdminOrStudent && (
-        <div className="pt-10">
-          <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-semibold pb-2">
-              Give us your valuable opinion
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xl font-extrabold" style={{ color: BRAND }}>
+              Your Opinion
             </h3>
-            <div className="flex gap-1 items-center cursor-pointer">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <div key={star} onClick={() => handleRatingClick(star)}>
-                  {rating >= star ? (
+            <div className="flex gap-1 cursor-pointer">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <div key={s} onClick={() => setRating(s)}>
+                  {rating >= s ? (
                     <FaStar className="text-yellow-400" />
                   ) : (
-                    <FaRegStar />
+                    <FaRegStar className="text-gray-300" />
                   )}
                 </div>
               ))}
             </div>
           </div>
-          <div>
-            <textarea
-              className="border rounded-md w-full h-32 p-2"
-              value={comments}
-              onChange={(e) => setComments(e.target.value)}
-            ></textarea>
-            <div className="text-right">
-              <button
-                onClick={handleSubmitRating}
-                className="bg-primary text-white px-5 py-2 mt-1 rounded-md"
-              >
-                Submit
-              </button>
-            </div>
+          <textarea
+            value={comments}
+            onChange={(e) => setComments(e.target.value)}
+            className="w-full border-2 rounded-xl p-3 text-sm h-28 focus:outline-none resize-none"
+            style={{ borderColor: BRAND_LIGHT }}
+            placeholder="Share your experience..."
+          />
+          <div className="text-right mt-2">
+            <button
+              onClick={handleSubmitRating}
+              className="px-6 py-2 rounded-xl text-sm font-bold text-white"
+              style={{ backgroundColor: BRAND }}
+            >
+              Submit
+            </button>
           </div>
         </div>
       )}
-      <div className="pt-10">
-        <div className="flex gap-2 items-center justify-between">
-          <h3 className="text-2xl font-semibold">Students Opinion</h3>
-          <div className="flex gap-2 text-2xl text-white">
-            <FaChevronLeft
-              onClick={() => scrollCarousel(studentsOpinionCarouselRef, "left")}
-              className="bg-primary rounded-md p-1 cursor-pointer"
-            />
-            <FaChevronRight
-              onClick={() =>
-                scrollCarousel(studentsOpinionCarouselRef, "right")
-              }
-              className="bg-primary rounded-md p-1 cursor-pointer"
-            />
+
+      {/* Student Opinions */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xl font-extrabold" style={{ color: BRAND }}>
+            Students Opinion
+          </h3>
+          <div className="flex gap-2">
+            {[
+              ["left", studentsOpinionCarouselRef],
+              ["right", studentsOpinionCarouselRef],
+            ].map(([dir, ref], i) => (
+              <button
+                key={i}
+                onClick={() => scrollCarousel(ref, dir)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
+                style={{ backgroundColor: BRAND }}
+              >
+                {dir === "left" ? (
+                  <FaChevronLeft size={12} />
+                ) : (
+                  <FaChevronRight size={12} />
+                )}
+              </button>
+            ))}
           </div>
         </div>
         <div
           ref={studentsOpinionCarouselRef}
-          className="carousel carousel-center space-x-4 p-4 mt-2 border w-full min-h-52 rounded-md"
+          className="flex gap-4 overflow-x-auto pb-2 scrollbar-hidden"
         >
           {renderStudentOpinions()}
         </div>
       </div>
-      <div className="pt-10">
-        <div className="flex gap-2 justify-between items-center">
-          <h3 className="text-2xl font-semibold">Related Courses</h3>
-          <div className="flex gap-2 text-2xl text-white">
-            <FaChevronLeft
-              onClick={() => scrollCarousel(reletedCoursesCarouselRef, "left")}
-              className="bg-primary rounded-md p-1 cursor-pointer"
-            />
-            <FaChevronRight
-              onClick={() => scrollCarousel(reletedCoursesCarouselRef, "right")}
-              className="bg-primary rounded-md p-1 cursor-pointer"
-            />
+
+      {/* Related Courses */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xl font-extrabold" style={{ color: BRAND }}>
+            Related Courses
+          </h3>
+          <div className="flex gap-2">
+            {["left", "right"].map((dir) => (
+              <button
+                key={dir}
+                onClick={() => scrollCarousel(reletedCoursesCarouselRef, dir)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
+                style={{ backgroundColor: BRAND }}
+              >
+                {dir === "left" ? (
+                  <FaChevronLeft size={12} />
+                ) : (
+                  <FaChevronRight size={12} />
+                )}
+              </button>
+            ))}
           </div>
         </div>
         <div
           ref={reletedCoursesCarouselRef}
-          className="carousel carousel-center space-x-4 p-4 mt-2 border w-full min-h-36  rounded-md"
+          className="flex gap-4 overflow-x-auto pb-2 scrollbar-hidden"
         >
-          {reletedCourses?.map((reletedCourse) => (
+          {reletedCourses?.map((c) => (
             <Link
-              to={`/singleCourse/${reletedCourse?._id}`}
-              key={reletedCourse._id}
-              className="carousel-item"
+              key={c._id}
+              to={`/singleCourse/${c._id}`}
+              className="shrink-0"
             >
               <img
-                src={reletedCourse?.banner}
-                className="rounded-md w-32 h-32 object-cover border"
-                alt={reletedCourse?.title}
+                src={c?.banner}
+                alt={c?.title}
+                className="w-28 h-28 rounded-xl object-cover border"
+                style={{ borderColor: BRAND_LIGHT }}
               />
             </Link>
           ))}
@@ -739,126 +1187,74 @@ const SingleCourse = () => {
     </div>
   );
 
+  // ── Header bar (shared)
+  const HeaderBar = ({ showJoinGroup = false }) => (
+    <div
+      className="px-6 py-6 mb-8"
+      style={{
+        background: `linear-gradient(135deg, ${BRAND_DARK}, ${BRAND_MID})`,
+      }}
+    >
+      <div className="lg:w-3/4 w-11/12 mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-2xl md:text-3xl font-extrabold text-white">
+            {courseData?.title}
+          </h3>
+          <div className="flex gap-1 mt-2 items-center">
+            {renderStars(calculateAverageRating())}
+            <p className="ml-2 text-white/60 text-sm">
+              {courseData?.studentsOpinion?.length || 0} Ratings
+            </p>
+          </div>
+          {courseData?.magnetLine && (
+            <p className="text-white/70 text-sm mt-2 max-w-lg">
+              {courseData.magnetLine}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(user?.user?.role === "admin" ||
+            courseData?.instructorsId?.includes(userId)) && (
+            <Link
+              to={`/dashboard/admin/schedulemeet?${courseId}`}
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white text-sm px-4 py-2 rounded-xl transition border border-white/20"
+            >
+              Create Meet
+            </Link>
+          )}
+          <button
+            onClick={() => downloadFiteAtURL(courseData?.syllabus)}
+            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white text-sm px-4 py-2 rounded-xl transition border border-white/20"
+          >
+            <IoMdDownload /> Syllabus
+          </button>
+          {showJoinGroup && (
+            <Link
+              to={courseData?.whatsappGroupLink}
+              target="_blank"
+              className="flex items-center gap-2 bg-[#25d366] hover:bg-[#1fb855] text-white text-sm px-4 py-2 rounded-xl transition"
+            >
+              <FaWhatsapp /> Join Group
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div>
-      {isAdminOrStudent === false && (
+      {/* ── Not enrolled ── */}
+      {!isAdminOrStudent && (
         <div>
           <Navbar />
           <div className="pt-[73px] pb-20">
-            <div className="rounded-md bg-gradient-to-r from-[#065f46] via-[#047857] to-[#ecfccb] text-white px-5 py-10 border-b mb-8 shadow-lg backdrop-blur-sm">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-3xl">{courseData?.title}</h3>
-                  <div className="flex gap-1 text-xl mt-2 items-center">
-                    {renderStars(calculateAverageRating())}
-                    <p className="ml-3">
-                      {courseData?.studentsOpinion?.length || 0} Ratings
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-col md:flex-row gap-2">
-                  {(user?.user?.role === "admin" ||
-                    courseData?.instructorsId?.includes(userId)) && (
-                    <Link
-                      to={`/dashboard/admin/schedulemeet?${courseId}`}
-                      className="text-primary flex items-center gap-2 bg-white py-2 px-4 rounded-md"
-                    >
-                      Create Meet
-                    </Link>
-                  )}
-                  <button
-                    onClick={() => downloadFiteAtURL(courseData?.syllabus)}
-                    className="text-primary flex items-center gap-2 bg-white py-2 px-4 rounded-md"
-                  >
-                    <IoMdDownload className="text-xl" />
-                    <p className="">Syllabus</p>
-                  </button>
-                </div>
-              </div>
-              <div>
-                <p className="pt-5 w-2/3">{courseData?.magnetLine}</p>
-              </div>
-            </div>
-            <div className="lg:col-span-2 col-span-5 border rounded-md h-fit my-8 top-[73px] block lg:hidden">
-              <img className="rounded-t-md" src={courseData?.banner} alt="" />
-              {courseData?.discount > 0 ? (
-                <div className="p-3">
-                  <div className="flex gap-4">
-                    <del className="font-semibold text-gray-400 flex items-center">
-                      {courseData?.price}
-                      <TbCurrencyTaka />
-                    </del>
-                    <p className="bg-primary bg-opacity-25 font-semibold text-primary rounded-full py-1 px-3 w-fit text-sm">
-                      {courseData?.discount}% OFF
-                    </p>
-                  </div>
-                  <div className="text-2xl font-semibold flex items-center">
-                    <h3>
-                      {finalPrice !== null
-                        ? `${Math.round(finalPrice)}`
-                        : "Price not available"}
-                    </h3>
-                    <TbCurrencyTaka />
-                  </div>
-                </div>
-              ) : (
-                <div className="text-2xl p-3 font-semibold flex items-center">
-                  <h3>{courseData?.price}</h3>
-                  <TbCurrencyTaka />
-                </div>
-              )}
-              <div className="p-3 pt-0">
-                <button
-                  onClick={makePayment}
-                  className="bg-primary text-white w-full text-xl py-2 mt-2 rounded-md"
-                >
-                  Enroll
-                </button>
-              </div>
-            </div>
+            <HeaderBar />
             <div className="lg:w-3/4 w-11/12 mx-auto">
-              <div className="grid lg:grid-cols-7 grid-cols-1 gap-8 relative">
+              <div className="grid lg:grid-cols-7 grid-cols-1 gap-8">
                 <div className="col-span-5">{commonSections}</div>
-                <div className="lg:col-span-2 col-span-5 border rounded-md h-fit sticky top-[73px] lg:block hidden">
-                  <img
-                    className="rounded-t-md"
-                    src={courseData?.banner}
-                    alt=""
-                  />
-                  {courseData?.discount > 0 ? (
-                    <div className="p-3">
-                      <div className="flex gap-4">
-                        <del className="font-semibold text-gray-400 flex items-center">
-                          {courseData?.price}
-                          <TbCurrencyTaka />
-                        </del>
-                        <p className="bg-primary bg-opacity-25 font-semibold text-primary rounded-full py-1 px-3 w-fit text-sm">
-                          {courseData?.discount}% OFF
-                        </p>
-                      </div>
-                      <div className="text-2xl font-semibold flex items-center">
-                        <h3>
-                          {finalPrice !== null
-                            ? `${Math.round(finalPrice)}`
-                            : "Price not available"}
-                        </h3>
-                        <TbCurrencyTaka />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-2xl p-3 font-semibold flex items-center">
-                      <h3>{courseData?.price}</h3>
-                      <TbCurrencyTaka />
-                    </div>
-                  )}
-                  <div className="p-3 pt-0">
-                    <button
-                      onClick={makePayment}
-                      className="bg-primary text-white w-full text-xl py-2 mt-2 rounded-md"
-                    >
-                      Enroll
-                    </button>
-                  </div>
+                <div className="lg:col-span-2 col-span-5 lg:sticky lg:top-24 h-fit">
+                  <CoursePayment course={courseData} />
                 </div>
               </div>
             </div>
@@ -866,292 +1262,58 @@ const SingleCourse = () => {
           <Footer />
         </div>
       )}
-      {isAdminOrStudent === true && (
+
+      {/* ── Enrolled student / admin ── */}
+      {isAdminOrStudent && (
         <div className="lg:flex block">
           <div className="lg:fixed top-0 z-10">
             <Sidebar />
           </div>
-          <div className="lg:pl-72 pl-0 top-7 lg:absolute lg:pr-8 pr-0">
-            <div className="rounded-md bg-gradient-to-b from-primary via-[#1870c8] to-[#1c7edf] text-white px-5 py-5 border-b mb-8">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-3xl">{courseData?.title}</h3>
-                  <div className="flex gap-1 text-xl mt-2 items-center">
-                    {renderStars(calculateAverageRating())}
-                    <p className="ml-3">
-                      {courseData?.studentsOpinion?.length || 0} Ratings
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-col md:flex-row gap-2">
-                  {(user?.user?.role === "admin" ||
-                    courseData?.instructorsId?.includes(userId)) && (
-                    <Link
-                      to={`/dashboard/admin/schedulemeet?${courseId}`}
-                      className="text-primary flex items-center gap-2 bg-white py-2 px-4 rounded-md"
-                    >
-                      Create Meet
-                    </Link>
+          <div className="lg:pl-72 pl-0 w-full">
+            <HeaderBar showJoinGroup />
+            <div className="lg:w-full w-11/12 mx-auto px-4 pb-20">
+              <div className="grid lg:grid-cols-7 grid-cols-1 gap-6">
+                <div className="col-span-5">
+                  {showQuiz ? (
+                    renderQuizContent()
+                  ) : (
+                    <video
+                      className="w-full rounded-2xl border"
+                      style={{ height: 480, borderColor: BRAND_LIGHT }}
+                      src={selectedVideo?.videoLink}
+                      controls
+                    />
                   )}
-                  <button
-                    onClick={() => downloadFiteAtURL(courseData?.syllabus)}
-                    className="text-primary flex items-center gap-2 bg-white py-2 px-4 rounded-md"
-                  >
-                    <IoMdDownload className="text-xl" />
-                    <p className="">Syllabus</p>
-                  </button>
-                  <Link
-                    to={courseData?.whatsappGroupLink}
-                    target="_blank"
-                    className="text-primary flex items-center gap-2 bg-white py-2 px-4 rounded-md"
-                  >
-                    <FaWhatsapp className="text-xl" />
-                    <p className="">Join Group</p>
-                  </Link>
-                </div>
-              </div>
-              <div>
-                <p className="pt-5 w-2/3">{courseData?.magnetLine}</p>
-              </div>
-            </div>
-            <div className=" grid lg:grid-cols-7 grid-cols-1 gap-8">
-              <div className="col-span-5 w-full">
-                {showQuiz ? (
-                  renderQuizContent()
-                ) : (
-                  <video
-                    className="border rounded-md col-span-5 w-full h-[600px]"
-                    src={selectedVideo?.videoLink}
-                    controls
-                  />
-                )}
-                <div className="col-span-2 lg:hidden block z-10 ">
-                  <div className="border rounded-md h-[600px] relative mt-5">
-                    {courseData?.videos?.map((video, index) => (
-                      <p
-                        key={video?._id}
-                        className={`whitespace-nowrap m-3 p-2 rounded-md border ${
-                          showQuiz
-                            ? "text-gray-400 cursor-not-allowed"
-                            : selectedVideo?._id === video._id
-                            ? "bg-primary border-primary text-white"
-                            : index < unlockedVideos
-                            ? "text-black cursor-pointer"
-                            : "text-gray-400 cursor-not-allowed"
-                        } overflow-hidden`}
-                        onClick={() =>
-                          !showQuiz &&
-                          index < unlockedVideos &&
-                          handleVideoSelect(video, index)
-                        }
-                      >
-                        {index < unlockedVideos ? (
-                          <>{index + 1}. </>
-                        ) : (
-                          <FaLock className="inline-block mr-2" />
-                        )}
-                        {video?.videoTitle}
-                      </p>
-                    ))}
-                    {courseData?.videos?.length > 0 && (
-                      <div className="whitespace-nowrap flex justify-between m-3 p-2 rounded-md border">
-                        <p
-                          className={`px-4 rounded-md ${
-                            courseComplete
-                              ? "text-black"
-                              : "text-gray-400 cursor-not-allowed"
-                          }`}
-                        >
-                          Quiz
-                        </p>
-                        <button
-                          onClick={courseComplete ? handleQuizOpen : undefined}
-                          className={`px-4 rounded-md ${
-                            courseComplete
-                              ? "bg-primary text-white"
-                              : "bg-gray-300 text-gray-400 cursor-not-allowed"
-                          }`}
-                          disabled={!courseComplete}
-                        >
-                          Open
-                        </button>
-                      </div>
-                    )}
-                    <div className="text-white p-3 flex justify-between items-center absolute bottom-0 left-0 right-0">
-                      <button
-                        className={`bg-primary py-1 px-4 rounded-md ${
-                          currentVideoIndex === 0 &&
-                          "text-gray-400 bg-gray-300 cursor-not-allowed"
-                        }`}
-                        onClick={() => {
-                          if (currentVideoIndex > 0) {
-                            handleVideoSelect(
-                              courseData.videos[currentVideoIndex - 1],
-                              currentVideoIndex - 1
-                            );
-                          }
-                        }}
-                        disabled={currentVideoIndex === 0}
-                      >
-                        Prev
-                      </button>
-                      <button
-                        className={`bg-primary py-1 px-4 rounded-md ${
-                          currentVideoIndex === courseData.videos.length - 1 &&
-                          "text-gray-400 bg-gray-300 cursor-not-allowed"
-                        }`}
-                        onClick={() => {
-                          if (
-                            currentVideoIndex <
-                            courseData.videos.length - 1
-                          ) {
-                            if (currentVideoIndex + 1 < unlockedVideos) {
-                              handleVideoSelect(
-                                courseData.videos[currentVideoIndex + 1],
-                                currentVideoIndex + 1
-                              );
-                            } else {
-                              unlockNextVideo().then(() => {
-                                handleVideoSelect(
-                                  courseData.videos[currentVideoIndex + 1],
-                                  currentVideoIndex + 1
-                                );
-                              });
-                            }
-                          }
-                        }}
-                        disabled={
-                          currentVideoIndex === courseData.videos.length - 1
-                        }
-                      >
-                        Next
-                      </button>
-                    </div>
+                  {/* Mobile video list */}
+                  <div className="lg:hidden mt-4">
+                    <VideoList />
                   </div>
-                  {courseComplete === true && quizComplete && (
-                    <div className="text-center">
+                  {courseComplete && quizComplete && (
+                    <div className="mt-4">
                       <button
                         onClick={courseCompleteAction}
-                        className="text-white bg-primary w-full p-2 rounded-md mt-4"
+                        className="w-full py-3 rounded-xl font-bold text-white"
+                        style={{ backgroundColor: BRAND }}
                       >
-                        Complete Course
+                        🎓 Complete Course
                       </button>
                     </div>
                   )}
+                  <div className="mt-10">{commonSections}</div>
                 </div>
-                <div className="py-10">{commonSections}</div>
-              </div>
-
-              <div className="col-span-2 h-[600px] hidden lg:block z-10 sticky top-[20px]">
-                <div className="border rounded-md h-[600px]">
-                  {courseData?.videos?.map((video, index) => (
-                    <p
-                      key={video?._id}
-                      className={`whitespace-nowrap m-3 p-2 rounded-md border ${
-                        showQuiz
-                          ? "text-gray-400 cursor-not-allowed"
-                          : selectedVideo?._id === video._id
-                          ? "bg-primary border-primary text-white"
-                          : index < unlockedVideos
-                          ? "text-black cursor-pointer"
-                          : "text-gray-400 cursor-not-allowed"
-                      } overflow-hidden`}
-                      onClick={() =>
-                        !showQuiz &&
-                        index < unlockedVideos &&
-                        handleVideoSelect(video, index)
-                      }
-                    >
-                      {index < unlockedVideos ? (
-                        <>{index + 1}. </>
-                      ) : (
-                        <FaLock className="inline-block mr-2" />
-                      )}
-                      {video?.videoTitle}
-                    </p>
-                  ))}
-                  {courseData?.videos?.length > 0 && (
-                    <div className="whitespace-nowrap flex justify-between m-3 p-2 rounded-md border">
-                      <p
-                        className={`px-4 rounded-md ${
-                          courseComplete
-                            ? "text-black"
-                            : "text-gray-400 cursor-not-allowed"
-                        }`}
-                      >
-                        Quiz
-                      </p>
-                      <button
-                        onClick={courseComplete ? handleQuizOpen : undefined}
-                        className={`px-4 rounded-md ${
-                          courseComplete
-                            ? "bg-primary text-white"
-                            : "bg-gray-300 text-gray-400 cursor-not-allowed"
-                        }`}
-                        disabled={!courseComplete}
-                      >
-                        Open
-                      </button>
-                    </div>
-                  )}
-                  <div className="text-white p-3 flex justify-between items-center absolute bottom-0 left-0 right-0">
-                    <button
-                      className={`bg-primary py-1 px-4 rounded-md ${
-                        currentVideoIndex === 0 &&
-                        "text-gray-400 bg-gray-300 cursor-not-allowed"
-                      }`}
-                      onClick={() => {
-                        if (currentVideoIndex > 0) {
-                          handleVideoSelect(
-                            courseData.videos[currentVideoIndex - 1],
-                            currentVideoIndex - 1
-                          );
-                        }
-                      }}
-                      disabled={currentVideoIndex === 0}
-                    >
-                      Prev
-                    </button>
-                    <button
-                      className={`bg-primary py-1 px-4 rounded-md ${
-                        currentVideoIndex === courseData.videos.length - 1 &&
-                        "text-gray-400 bg-gray-300 cursor-not-allowed"
-                      }`}
-                      onClick={() => {
-                        if (currentVideoIndex < courseData.videos.length - 1) {
-                          if (currentVideoIndex + 1 < unlockedVideos) {
-                            handleVideoSelect(
-                              courseData.videos[currentVideoIndex + 1],
-                              currentVideoIndex + 1
-                            );
-                          } else {
-                            unlockNextVideo().then(() => {
-                              handleVideoSelect(
-                                courseData.videos[currentVideoIndex + 1],
-                                currentVideoIndex + 1
-                              );
-                            });
-                          }
-                        }
-                      }}
-                      disabled={
-                        currentVideoIndex === courseData.videos.length - 1
-                      }
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-                {courseComplete === true && quizComplete && (
-                  <div className="text-center">
+                {/* Desktop video list */}
+                <div className="col-span-2 hidden lg:block sticky top-6 h-fit">
+                  <VideoList />
+                  {courseComplete && quizComplete && (
                     <button
                       onClick={courseCompleteAction}
-                      className="text-white bg-primary w-full p-2 rounded-md mt-4"
+                      className="w-full py-3 rounded-xl font-bold text-white mt-4"
+                      style={{ backgroundColor: BRAND }}
                     >
-                      Complete Course
+                      🎓 Complete Course
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </div>
